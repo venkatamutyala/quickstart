@@ -7,6 +7,37 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 [Conventional Commits](https://www.conventionalcommits.org/). Add your change under
 `## [Unreleased]`; maintainers cut a dated, versioned section at release time.
 
+## [Unreleased]
+
+### Changed
+
+- `make info` and `make tunnel` now spell out GUI access: most UIs open straight
+  in (pgAdmin, Garage UI, Valkey UI), and RabbitMQ — the only one with a login —
+  shows its credentials. `make info` no longer advertises a pgAdmin email/password
+  login, which desktop mode removed. README and `.env.example` updated to match,
+  and the `ANON=1` tunnel note now warns that those GUIs have no login of their
+  own (so an anonymous tunnel exposes a pre-connected pgAdmin to anyone).
+
+### Fixed
+
+- pgAdmin now works behind a dev tunnel / Codespaces port-forward: trust the
+  `X-Forwarded-*` headers so it no longer rejects requests with "The referrer
+  does not match the host."
+- pgAdmin's pre-configured Postgres server now connects automatically instead of
+  failing with "fe_sendauth: no password supplied." The old mounted `pgpass`
+  could never work: pgAdmin's workers run as uid 5050 and can't read a
+  host-owned `0600` file (and libpq rejects looser perms). Replaced it with a
+  `PasswordExecCommand` that reads the password from the container environment,
+  switched pgAdmin to desktop (single-user) mode — which also removes the login
+  and master-password prompts — and set `PGADMIN_REPLACE_SERVERS_ON_STARTUP` so
+  `servers.json` stays the source of truth across restarts (its config volume is
+  a persisted anonymous volume that otherwise keeps a stale server definition).
+
+### Removed
+
+- Dropped the Postgres-only `make url` target; use `make conn`, `make env`, or
+  `make info` for connection details across all services.
+
 ## [1.1.0](https://github.com/venkatamutyala/quickstart/compare/v1.0.0...v1.1.0) (2026-06-06)
 
 
