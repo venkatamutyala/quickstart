@@ -6,7 +6,9 @@ each service with a UI and ready-to-paste connection details; point your app at 
 
 - **Postgres** (+ pgAdmin GUI)
 - **Garage** — S3-compatible object storage (+ a web UI)
-- _more backends planned (Valkey, Kafka, RabbitMQ, …)_
+- **Valkey** — Redis-compatible cache/store (+ a redis-commander web UI)
+- **RabbitMQ** — AMQP message broker (+ the built-in management UI)
+- _more backends planned (Kafka, OpenSearch, pgvector, …)_
 
 > Local development only — not for production.
 
@@ -30,6 +32,8 @@ Postgres  : postgresql://postgres:postgres@localhost:5432/appdb?sslmode=disable
 pgAdmin   : http://localhost:8080  (admin@example.com / admin)
 S3 (Garage): http://localhost:3900  (region garage, bucket appbucket)
 Garage UI : http://localhost:3909
+Valkey    : redis://default:valkey@localhost:6379/0  (UI http://localhost:8081)
+RabbitMQ  : amqp://rabbit:rabbit@localhost:5672/  (UI http://localhost:15672)
 ```
 
 ## Connection details
@@ -42,6 +46,8 @@ live values, so you can map them to whatever language/framework you use:
 make conn               # all services
 make conn ONLY=postgres # just Postgres
 make conn ONLY=s3       # just S3 / Garage
+make conn ONLY=valkey   # just Valkey
+make conn ONLY=rabbitmq # just RabbitMQ
 ```
 
 **Postgres** — host, port, db, user, password, SSL mode, plus assembled libpq URL,
@@ -54,6 +60,13 @@ env vars, and an `aws` CLI example. Note two things:
   addressing in your S3 client).
 - `sslmode=disable` for Postgres and plain `http://` for S3 are intentional — these are
   local, TLS-free services.
+
+**Valkey** — host, port, password, and an assembled `redis://default:…` URL (Valkey speaks
+the Redis protocol, so any `redis://` client works). The default DB index is `0`; auth is the
+password only (user `default`). Plain connection — use `redis://`, not `rediss://`.
+
+**RabbitMQ** — user, password, the default vhost `/`, and an assembled `amqp://` URL
+(AMQP 0-9-1). The bundled management UI doubles as an HTTP API on the same port under `/api`.
 
 `make conn` prints **two fully-assembled forms** for every service:
 
@@ -72,14 +85,14 @@ Postgres + S3 against the running stack — a copy-me starting point.
 
 ## Remote / headless: expose the GUIs with a dev tunnel
 
-Running this on a remote or headless box and want to reach pgAdmin or the Garage UI from
-your laptop's browser? The bundled [Dev Tunnels](https://aka.ms/devtunnels/docs)
-integration exposes the **GUIs** over public HTTPS URLs (the database/S3 ports are **not**
-exposed):
+Running this on a remote or headless box and want to reach the GUIs from your laptop's
+browser? The bundled [Dev Tunnels](https://aka.ms/devtunnels/docs) integration exposes the
+**GUIs** (pgAdmin, Garage UI, Valkey UI, RabbitMQ management UI) over public HTTPS URLs (the
+database/S3/cache/broker data ports are **not** exposed):
 
 ```bash
 make tunnel-login   # one-time: GitHub login (device-code flow, works headless)
-make tunnel         # host pgAdmin + Garage UI; opens https://*.devtunnels.ms URLs (Ctrl-C to stop)
+make tunnel         # host the GUIs; opens https://*.devtunnels.ms URLs (Ctrl-C to stop)
 ```
 
 - Access requires authentication by default. Add `ANON=1` (`make tunnel ANON=1`) to allow
@@ -115,7 +128,7 @@ data volume is first created:
 
 ## Contributing & extending
 
-Want to add another backend (Valkey, Kafka, RabbitMQ, …)? There's one repeatable pattern —
+Want to add another backend (Kafka, OpenSearch, pgvector, …)? There's one repeatable pattern —
 see **[docs/adding-a-backend.md](docs/adding-a-backend.md)**. For workflow, commit
 conventions (Conventional Commits), and the changelog process, see
 **[CONTRIBUTING.md](CONTRIBUTING.md)**; for versioning/tags, **[RELEASING.md](RELEASING.md)**.
