@@ -73,7 +73,60 @@ services:
     ports:
       - "${GARAGE_UI_PORT:-3909}:3909"
 
+  # Redis-compatible in-memory cache/store. Auth via the built-in 'default' user.
+  cache-valkey:
+    image: valkey/valkey:8.1-alpine@sha256:77643d152547b446fc15cbafaff22004545663fcd40c6b28038ad283837baa75
+    # --requirepass enables auth; --appendonly yes persists to the data volume.
+    command:
+      - valkey-server
+      - --requirepass
+      - ${VALKEY_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      - --appendonly
+      - "yes"
+    volumes:
+      - valkeydata:/data
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    healthcheck:
+      # --no-auth-warning keeps the password off stderr; the exit code is what counts.
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD:?missing — run 'make init' to create .env from .env.example}", "--no-auth-warning", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # Web UI for Valkey (redis-commander, MIT).
+  cache-valkey-ui:
+    image: rediscommander/redis-commander:latest@sha256:19cd0c49f418779fa2822a0496c5e6516d0c792effc39ed20089e6268477e40a
+    depends_on:
+      cache-valkey:
+        condition: service_healthy
+    environment:
+      REDIS_HOST: cache-valkey
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${VALKEY_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+    ports:
+      - "${VALKEY_UI_PORT:-8081}:8081"
+
+  # AMQP message broker. The -management image bundles the management web UI.
+  queue-rabbitmq:
+    image: rabbitmq:4.1-management-alpine@sha256:c27a1e0a4f4a4486aeaa4c3c30f1d9b7211e06d341f005e5fca9ce36d95024bb
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rabbit}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"               # AMQP
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"  # management web UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
 volumes:
   pgdata:
   garagemeta:
   garagedata:
+  valkeydata:
+  rabbitmqdata:

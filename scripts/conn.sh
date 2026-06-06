@@ -4,7 +4,7 @@
 # Docker), plus the common options various libraries need. Generic on purpose —
 # map them to your language and framework yourself.
 #   ./scripts/conn.sh            # all services
-#   ./scripts/conn.sh postgres   # just one (postgres|s3)
+#   ./scripts/conn.sh postgres   # just one (postgres|s3|valkey|rabbitmq)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -108,5 +108,56 @@ cat <<EOF
   -- Other common options --
   use_ssl/secure   : false  (http endpoint; e.g. boto use_ssl=False, minio secure=False)
   admin auth       : Authorization: Bearer \$GARAGE_ADMIN_TOKEN
+EOF
+fi
+
+if want valkey; then
+cat <<EOF
+
+=============================== Valkey (cache) ===========================
+  Password         : $VALKEY_PASSWORD
+  User             : default              (Valkey's built-in user; auth is the password only)
+  DB index         : 0                    (default; redis:// path segment selects it)
+  Use TLS          : no (plain connection)
+
+  -- From your host (localhost) --
+  Host:Port        : localhost:$VALKEY_PORT
+  URL              : redis://default:$VALKEY_PASSWORD@localhost:$VALKEY_PORT/0
+  valkey-cli       : valkey-cli -u redis://default:$VALKEY_PASSWORD@localhost:$VALKEY_PORT
+  Web UI           : http://localhost:$VALKEY_UI_PORT   (redis-commander)
+
+  -- From inside Docker (service 'cache-valkey', internal port 6379) --
+  Host:Port        : cache-valkey:6379
+  URL              : redis://default:$VALKEY_PASSWORD@cache-valkey:6379/0
+
+  Note             : Valkey speaks the Redis protocol — any redis:// client works
+                     (redis-py, ioredis, go-redis, lettuce/jedis, …). Use scheme 'rediss://'
+                     only for TLS; this server is plaintext, so 'redis://'.
+EOF
+fi
+
+if want rabbitmq; then
+cat <<EOF
+
+============================= RabbitMQ (queue) ===========================
+  User             : $RABBITMQ_USER
+  Password         : $RABBITMQ_PASSWORD
+  Virtual host     : /                     (default; URL-encode as %2F in the AMQP URL path)
+  Use TLS          : no (plain amqp)
+  Protocol         : AMQP 0-9-1
+
+  -- From your host (localhost) --
+  Host:Port        : localhost:$RABBITMQ_PORT
+  AMQP URL         : amqp://$RABBITMQ_USER:$RABBITMQ_PASSWORD@localhost:$RABBITMQ_PORT/%2F
+  Management UI    : http://localhost:$RABBITMQ_MANAGEMENT_PORT   ($RABBITMQ_USER / $RABBITMQ_PASSWORD)
+
+  -- From inside Docker (service 'queue-rabbitmq', internal port 5672) --
+  Host:Port        : queue-rabbitmq:5672
+  AMQP URL         : amqp://$RABBITMQ_USER:$RABBITMQ_PASSWORD@queue-rabbitmq:5672/%2F
+
+  Note             : The trailing /%2F is the default vhost '/'; drop it (…:5672/) and most
+                     clients also default to '/'. AMQP 0-9-1 clients: pika (Py), amqplib (JS),
+                     amqp091-go (Go), Spring AMQP / Bunny. The management HTTP API is on the
+                     UI port under /api (same credentials).
 EOF
 fi

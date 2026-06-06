@@ -19,8 +19,8 @@ init: ## Create .env from .env.example (won't overwrite an existing one)
 		cp .env.example .env && echo "Created .env (edit it to taste, then 'make up')."; \
 	fi
 
-up: _require-env _render ## Start everything (Postgres, pgAdmin, Garage + UI) and init S3
-	docker compose up -d --wait db-postgres pgadmin s3-garage s3-garage-ui
+up: _require-env _render ## Start everything (Postgres, Garage, Valkey, RabbitMQ + UIs) and init S3
+	docker compose up -d --wait db-postgres pgadmin s3-garage s3-garage-ui cache-valkey cache-valkey-ui queue-rabbitmq
 	@$(MAKE) --no-print-directory garage-init
 	@$(MAKE) --no-print-directory info
 
@@ -36,7 +36,7 @@ reset: ## Stop and DELETE the data volume (fresh database next 'up')
 url: _require-env ## Print the connection string for your app
 	@echo "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(PGPORT)/$(POSTGRES_DB)?sslmode=disable"
 
-conn: _require-env ## Print broken-out connection details (ONLY=postgres|s3)
+conn: _require-env ## Print broken-out connection details (ONLY=postgres|s3|valkey|rabbitmq)
 	@./scripts/conn.sh $(ONLY)
 
 env: _require-env ## Print eval-able env exports for your app:  eval "$$(make env)"
@@ -62,6 +62,8 @@ info: _require-env ## Show URLs and credentials for this instance
 	@echo "pgAdmin   : http://localhost:$(PGADMIN_PORT)  ($(PGADMIN_EMAIL) / $(PGADMIN_PASSWORD))"
 	@echo "S3 (Garage): http://localhost:$(GARAGE_S3_PORT)  (region $(GARAGE_REGION), bucket $(GARAGE_BUCKET))"
 	@echo "Garage UI : http://localhost:$(GARAGE_UI_PORT)"
+	@echo "Valkey    : redis://default:$(VALKEY_PASSWORD)@localhost:$(VALKEY_PORT)/0  (UI http://localhost:$(VALKEY_UI_PORT))"
+	@echo "RabbitMQ  : amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@localhost:$(RABBITMQ_PORT)/  (UI http://localhost:$(RABBITMQ_MANAGEMENT_PORT))"
 	@echo "Run 'make conn' for full per-service connection details."
 
 status: _require-env ## Show live container status/health

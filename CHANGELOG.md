@@ -27,6 +27,11 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 
 
 ### Added
+- **Valkey** cache backend (`cache-valkey`, Redis-compatible) with a **redis-commander**
+  web UI (`cache-valkey-ui`) and a `smoke-valkey.sh` set/get round-trip test.
+- **RabbitMQ** message broker (`queue-rabbitmq`, AMQP 0-9-1) with the bundled **management
+  UI** and a `smoke-rabbitmq.sh` publish/get round-trip test via the management API. Both
+  new GUIs are exposed by `make tunnel` and shown in `make conn` / `make info`.
 - **Postgres** backend (`db-postgres`) with a **pgAdmin** GUI and auto-login.
 - **Garage** S3-compatible object storage (`s3-garage`) with a **web UI**
   (`s3-garage-ui`) and an idempotent `garage-init` (layout + key + bucket).
