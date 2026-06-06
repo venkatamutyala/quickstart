@@ -80,8 +80,7 @@ in-Docker form, put your app container on that network (`make conn` prints its e
 your checkout), or add your app as a service in `docker-compose.yaml`.
 
 **Wire it up fast:** `eval "$(make env)"` exports `DATABASE_URL` / `PG*` / `AWS_*` into your
-shell, and `make example` runs a tiny Python app (`examples/python/`) that connects to
-Postgres + S3 against the running stack — a copy-me starting point.
+shell so your app picks them up against the running stack.
 
 ## Remote / headless: expose the GUIs with a dev tunnel
 
@@ -111,8 +110,8 @@ make tunnel         # host the GUIs; opens https://*.devtunnels.ms URLs (Ctrl-C 
 ones you'll use most:
 
 ```
-make init   make up   make conn   make env   make example
-make test   make status   make logs   make psql   make down   make reset
+make init   make up   make conn   make env
+make info   make status   make logs   make down   make reset
 ```
 
 ## Schema & migrations
@@ -150,8 +149,8 @@ stack and verifies Postgres + S3.
   silent fallback to a guessable default. `make init` writes them all from `.env.example`.
 - Postgres only honors `POSTGRES_*` when its data volume is empty. To change DB
   credentials after first boot: `make reset` (destroys data), edit `.env`, then `make up`.
-- Garage is initialized automatically on `make up` (`make garage-init` is idempotent): it
-  applies a single-node layout, imports the S3 key from `.env`, and creates the bucket.
+- Garage is initialized automatically on `make up` (idempotent): it applies a single-node
+  layout, imports the S3 key from `.env`, and creates the bucket.
 - Data lives in named Docker volumes (`pgdata`, `garagemeta`, `garagedata`); it survives
   `make down` but `make reset` wipes all of them.
 

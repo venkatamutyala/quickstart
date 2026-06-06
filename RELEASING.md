@@ -49,5 +49,5 @@ Two `GITHUB_TOKEN` caveats (by design, since we avoid a PAT):
 
 ## Version at a glance
 
-`make version` prints the current release (`git describe --tags`); it's also shown by
-`make info`.
+`make info` prints the current release (from `git describe --tags`) alongside the connection
+details; or run `git describe --tags` directly.

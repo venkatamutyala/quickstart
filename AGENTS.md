@@ -34,8 +34,8 @@ A FOSS, **local-dev** quickstart that stands up the **data backends** an app nee
 - No per-language code snippets in `conn.sh`; no per-service command junk-drawer.
 
 ## Common commands
-`make help` lists everything. Most-used: `init`, `up`, `conn`, `status`, `logs`
-(`SVC=<service>`), `psql`, `down`, `reset`.
+`make help` lists everything (grouped Core / Introspect / Advanced). Most-used: `init`, `up`,
+`conn`, `info`, `status`, `logs` (`SVC=<service>`), `down`, `reset`.
 
 ## Where things live
 - Full usage & connection guidance → [README.md](README.md)
