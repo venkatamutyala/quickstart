@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  commit-lint:
+    name: Commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine commit range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"; head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"; head="${{ github.event.after }}"
+          fi
+          zero=0000000000000000000000000000000000000000
+          if [ "$head" = "$zero" ] || ! git rev-parse -q --verify "$base^{commit}" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No comparable base (branch create/delete) — skipping commit checks."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "range=$base..$head" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Conventional Commits
+        if: steps.range.outputs.skip != 'true'
+        run: |
+          range="${{ steps.range.outputs.range }}"
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .+'
+          fail=0
+          while IFS= read -r subject; do
+            case "$subject" in "fixup! "*|"squash! "*|"amend! "*) continue ;; esac
+            if printf '%s' "$subject" | grep -Eq "$pattern"; then echo "ok: $subject"; else echo "::error::Not a Conventional Commit: $subject"; fail=1; fi
+          done < <(git log --no-merges --format=%s "$range")
+          [ "$fail" -eq 0 ] || { echo "Commit subjects must follow Conventional Commits (see CONTRIBUTING.md)."; exit 1; }
+
+      - name: DCO sign-off by a human
+        if: steps.range.outputs.skip != 'true'
+        run: |
+          range="${{ steps.range.outputs.range }}"
+          # Trusted automation (Renovate, Dependabot, release-please, GitHub Actions) is exempt:
+          # bots can't "sign off as a human", and their commits/PRs should still pass CI.
+          automation='renovate\[bot\]|dependabot\[bot\]|github-actions\[bot\]|release-please'
+          # AI assistants may be a Co-authored-by, never the sole author/owner.
+          ai='noreply@anthropic\.com|@anthropic\.com|noreply@openai\.com|copilot|google-labs-jules'
+          fail=0
+          for sha in $(git rev-list --no-merges "$range"); do
+            short="$(git show -s --format='%h %s' "$sha")"
+            who="$(git show -s --format='%an <%ae>' "$sha")"
+            if printf '%s' "$who" | grep -iqE "$automation"; then echo "skip (automation): $short"; continue; fi
+            ae="$(git show -s --format='%ae' "$sha")"
+            signoffs="$(git show -s --format='%B' "$sha" | grep -iE '^Signed-off-by:' || true)"
+            if [ -z "$signoffs" ]; then echo "::error::Missing Signed-off-by — run 'git commit -s': $short"; fail=1; continue; fi
+            if ! printf '%s\n' "$signoffs" | grep -ivE "$ai|$automation" | grep -q .; then echo "::error::No human Signed-off-by: $short"; fail=1; fi
+            if printf '%s' "$ae" | grep -iqE "$ai"; then echo "::error::Commit author is an AI/bot ($ae); a human must author and own it: $short"; fail=1; fi
+          done
+          [ "$fail" -eq 0 ] || { echo "Each commit needs a human Signed-off-by (DCO, 'git commit -s'). AI is welcome as Co-authored-by; trusted automation (Renovate/release-please) is exempt. See CONTRIBUTING.md and DCO."; exit 1; }
+
+  smoke:
+    name: Stack smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Start the stack
+        run: make init && make up
+      - name: Smoke tests
+        run: make test
+      - name: Status
+        run: make status
+      - name: Teardown
+        if: always()
+        run: make down

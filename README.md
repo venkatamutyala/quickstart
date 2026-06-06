@@ -1,66 +1,145 @@
-# poc-mode
+# quickstart
 
-This project sets up a PostgreSQL database along with pgAdmin using Docker Compose. It is designed for easy local development and testing.
+A FOSS quickstart for standing up the local **data backends** a new app needs — so you
+can start building in minutes instead of wiring up infrastructure. One command brings up
+each service with a UI and ready-to-paste connection details; point your app at it and go.
 
-## Project Structure
+- **Postgres** (+ pgAdmin GUI)
+- **Garage** — S3-compatible object storage (+ a web UI)
+- _more backends planned (Valkey, Kafka, RabbitMQ, …)_
 
-```
-poc-mode
-├── docker-compose.yaml
-├── README.md
-└── pgadmin/
-    └── servers.json
-```
+> Local development only — not for production.
 
-## Services
+**How it compares:** *real* services you point an app at — not an AWS-API emulator
+(LocalStack), not ephemeral per-test containers (Testcontainers), and not tied to one
+language/SDK (.NET Aspire). Deliberately **FOSS and data-backends-only**, not a cloud emulator.
 
-### PostgreSQL
-
-- A PostgreSQL database is set up with a local volume for persistent data storage.
-- The default password for the PostgreSQL user is `yolo1234`.
-
-### pgAdmin
-
-- pgAdmin is included to provide a web-based interface for managing the PostgreSQL database.
-- It is pre-configured to connect to the PostgreSQL database using the `servers.json` file.
-
-## Getting Started
-
-1. **Clone the repository** (if applicable):
-   ```bash
-   git clone <repository-url>
-   cd poc-mode
-   ```
-
-2. **Start the services**:
-   ```bash
-   docker-compose up -d
-   ```
-
-3. **Access pgAdmin**:
-   - Open your web browser and go to `http://localhost:8080`.
-   - Log in using the email `admin@admin.com` and the password `yolo1234`.
-
-4. **Verify the Pre-configured Server**:
-   - The PostgreSQL server (`PostgresDB`) should already appear in pgAdmin under the "Servers" group.
-   - If it does not appear, ensure the `servers.json` file is correctly mounted and formatted.
-
-## Stopping the Services
-
-To stop the services, run:
-```bash
-docker-compose down
-```
-
-## To Stop and Recreate Everything
+## Quick start
 
 ```bash
-docker-compose down --volumes
-docker-compose up --build --force-recreate --renew-anon-volumes
+git clone https://github.com/venkatamutyala/quickstart && cd quickstart
+make init    # create .env from .env.example
+make up      # start everything, wait until healthy, init the S3 bucket
+make conn    # print full connection details for every service
 ```
+
+`make up` prints a summary (example output, with the default `.env`):
+
+```
+Postgres  : postgresql://postgres:postgres@localhost:5432/appdb?sslmode=disable
+pgAdmin   : http://localhost:8080  (admin@example.com / admin)
+S3 (Garage): http://localhost:3900  (region garage, bucket appbucket)
+Garage UI : http://localhost:3909
+```
+
+## Connection details
+
+Everything lives in `.env` (the single source of truth — change a value there and
+everything follows). `make conn` prints the details broken out per service, with your
+live values, so you can map them to whatever language/framework you use:
+
+```bash
+make conn               # all services
+make conn ONLY=postgres # just Postgres
+make conn ONLY=s3       # just S3 / Garage
+```
+
+**Postgres** — host, port, db, user, password, SSL mode, plus assembled libpq URL,
+key=value DSN, JDBC URL, and the standard `PG*` env vars.
+
+**S3 / Garage** — endpoint URL, region, access key ID, secret, bucket, the AWS-style
+env vars, and an `aws` CLI example. Note two things:
+
+- **Path-style addressing is required** (set "force path style" / disable virtual-host
+  addressing in your S3 client).
+- `sslmode=disable` for Postgres and plain `http://` for S3 are intentional — these are
+  local, TLS-free services.
+
+`make conn` prints **two fully-assembled forms** for every service:
+
+- **From your host** — app runs on your machine: host `localhost`, the published port.
+- **From inside Docker** — app runs as a container on the compose network (named after the
+  directory, e.g. `quickstart_default`): the service name and internal port
+  (`db-postgres:5432`, `http://s3-garage:3900`).
+
+So whether you run your app on the host or dockerize it, copy the matching block. To use the
+in-Docker form, put your app container on that network (`make conn` prints its exact name for
+your checkout), or add your app as a service in `docker-compose.yaml`.
+
+**Wire it up fast:** `eval "$(make env)"` exports `DATABASE_URL` / `PG*` / `AWS_*` into your
+shell, and `make example` runs a tiny Python app (`examples/python/`) that connects to
+Postgres + S3 against the running stack — a copy-me starting point.
+
+## Remote / headless: expose the GUIs with a dev tunnel
+
+Running this on a remote or headless box and want to reach pgAdmin or the Garage UI from
+your laptop's browser? The bundled [Dev Tunnels](https://aka.ms/devtunnels/docs)
+integration exposes the **GUIs** over public HTTPS URLs (the database/S3 ports are **not**
+exposed):
+
+```bash
+make tunnel-login   # one-time: GitHub login (device-code flow, works headless)
+make tunnel         # host pgAdmin + Garage UI; opens https://*.devtunnels.ms URLs (Ctrl-C to stop)
+```
+
+- Access requires authentication by default. Add `ANON=1` (`make tunnel ANON=1`) to allow
+  anyone with the URL — convenient, but each GUI's own login is then your only gate.
+- `./scripts/tunnel.sh <port> [<port>...]` tunnels specific ports, so any GUI added later
+  exposes the same way.
+- Needs the `devtunnel` CLI; `make tunnel` prints install instructions if it's missing.
+
+## Commands
+
+**`make help`** lists every target (always current — it's generated from the Makefile). The
+ones you'll use most:
+
+```
+make init   make up   make conn   make env   make example
+make test   make status   make logs   make psql   make down   make reset
+```
+
+## Schema & migrations
+
+This stack just gives you a database — managing schema is your app's job. Point your
+ORM / migration tool (Alembic, Prisma, Drizzle, golang-migrate, …) at the connection
+string from `make conn`.
+
+If you want first-boot SQL (e.g. `CREATE EXTENSION`), add your own `.sql` to the
+`db-postgres` service — anything under `/docker-entrypoint-initdb.d` runs once, when the
+data volume is first created:
+
+```yaml
+# docker-compose.yaml, under services: db-postgres: volumes:
+      - ./my-init.sql:/docker-entrypoint-initdb.d/my-init.sql:ro
+```
+
+## Contributing & extending
+
+Want to add another backend (Valkey, Kafka, RabbitMQ, …)? There's one repeatable pattern —
+see **[docs/adding-a-backend.md](docs/adding-a-backend.md)**. For workflow, commit
+conventions (Conventional Commits), and the changelog process, see
+**[CONTRIBUTING.md](CONTRIBUTING.md)**; for versioning/tags, **[RELEASING.md](RELEASING.md)**.
+AI agents: start at **[AGENTS.md](AGENTS.md)**.
+
+CI runs on every PR — it lints commit messages and runs a smoke test that boots the whole
+stack and verifies Postgres + S3.
 
 ## Notes
 
-- Ensure Docker and Docker Compose are installed on your machine.
-- The local volume will persist data even when the containers are stopped or removed.
-- The `servers.json` file is mounted to pre-configure the PostgreSQL server in pgAdmin.
+- All credentials in `.env.example` are throwaway local-dev defaults — change them for
+  anything real. They're committed for convenience; your working `.env` is gitignored.
+- Secrets are **enforced**: Compose uses `${VAR:?...}` for passwords/tokens/keys, so the
+  stack refuses to start (with a clear message) if a secret is missing or empty — no
+  silent fallback to a guessable default. `make init` writes them all from `.env.example`.
+- Postgres only honors `POSTGRES_*` when its data volume is empty. To change DB
+  credentials after first boot: `make reset` (destroys data), edit `.env`, then `make up`.
+- Garage is initialized automatically on `make up` (`make garage-init` is idempotent): it
+  applies a single-node layout, imports the S3 key from `.env`, and creates the bucket.
+- Data lives in named Docker volumes (`pgdata`, `garagemeta`, `garagedata`); it survives
+  `make down` but `make reset` wipes all of them.
+
+## License
+
+[MIT](LICENSE) © Venkata Mutyala. Referenced images keep their own upstream licenses (e.g.
+**Garage is AGPL-3.0**); they're pulled at runtime, not redistributed here, so this repo's
+own files stay MIT.

@@ -1,0 +1,122 @@
+# Contributing
+
+Thanks for helping grow the stack! This is a FOSS, local-dev quickstart of **data
+backends** — keep changes in that spirit (see the guardrails below).
+
+## Dev setup
+
+You need Docker + Docker Compose and `make`. Then:
+
+```bash
+make init      # create .env
+make up        # start the stack
+make status    # confirm everything is healthy
+```
+
+## Secrets & generated files
+
+**Never commit secrets or generated files.** `.env` and the rendered `pgadmin/pgpass`,
+`pgadmin/servers.json`, and `garage/garage.toml` are gitignored — they're produced from
+`.env` + the committed `.tmpl` files (and `.env.example`) at `make up`. Edit a template or
+`.env.example`, never the generated output, and keep your local `.env` out of git. If you
+add a backend that renders config, render it from `.env` and gitignore the output too.
+
+## Adding a new backend
+
+Follow the pattern in **[docs/adding-a-backend.md](docs/adding-a-backend.md)**. It keeps
+every service consistent (one-command up, a UI, `make conn` details, enforced secrets,
+digest-pinned images). `db-postgres` and `s3-garage` are the reference implementations.
+
+## Commit messages — Conventional Commits
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<optional scope>): <subject>
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`,
+`revert`. Examples:
+
+```
+feat(valkey): add Valkey cache service + redis-commander UI
+fix(garage): make bucket check an exact match
+docs: explain path-style addressing per SDK
+```
+
+This is **enforced in CI on every PR** (`.github/workflows/ci.yml` checks each commit
+subject) — no local setup required. The convention also drives the changelog.
+
+## Sign-off (DCO) — a human owns each commit
+
+Every commit must carry a `Signed-off-by:` trailer from a real person, certifying the
+[Developer Certificate of Origin](DCO). Add it with:
+
+```bash
+git commit -s -m "feat(valkey): add Valkey service"
+```
+
+AI assistance is welcome — credit it with a `Co-authored-by:` trailer — but **a human must
+author and sign off** each commit. CI rejects commits with no human sign-off, or whose
+author is an AI/bot (trusted automation like Renovate/release-please is exempt). The check
+runs on PRs **and** pushes to `main`; for it to be unbypassable, enable branch protection on
+`main` (require PRs + passing checks) — a one-time GitHub repo setting.
+
+## Licensing of contributions
+
+This project is [MIT](LICENSE), and **contributions are accepted under that same MIT
+license** ("inbound = outbound"). By submitting a contribution you license it under
+MIT as a perpetual, worldwide, irrevocable grant — so anyone can use, modify, fork, and
+redistribute it freely, with no extra terms.
+
+That's why there's **no CLA**: a CLA exists to give a project *extra* rights (relicensing,
+commercial dual-licensing, patent grants), which would only add friction here. The DCO
+sign-off above simply certifies you have the right to submit your contribution under MIT.
+
+## Changelog
+
+Add a bullet under `## [Unreleased]` in [CHANGELOG.md](CHANGELOG.md) describing your change.
+Releases are automated by [release-please](https://github.com/googleapis/release-please)
+from the Conventional Commits — see **[RELEASING.md](RELEASING.md)** for how versions are
+cut and how image updates (Renovate) flow into them.
+
+## Pull requests
+
+- Branch off `main`, keep PRs focused.
+- Verify locally: `make reset && make up`, then connect with `make conn` details and confirm
+  `make status` is healthy.
+- Update the README service list, `CHANGELOG.md`, and any relevant docs.
+
+CI (`.github/workflows/ci.yml`) runs on every PR: it lints commit messages (Conventional
+Commits) and runs a **smoke test** that boots the whole stack and verifies Postgres + S3.
+
+## Review checklist
+
+Use this when reviewing a change (humans and AI reviewers alike). For a new/changed backend,
+confirm:
+
+- [ ] **FOSS image, pinned by digest** (`tag@sha256:...`); upstream/official, not a vendor
+      "community edition".
+- [ ] **Secrets enforced** in compose via `${VAR:?...}`; no guessable fallback. Script-only
+      secrets guarded with `: "${VAR:?...}"`.
+- [ ] **Healthcheck** present and correct (`CMD-SHELL` for shell images, exec-form `CMD` for
+      distroless) and used by `depends_on: condition: service_healthy` where relevant.
+- [ ] **`conn.sh`** prints both **host** and **in-Docker** forms, with the right client
+      options/gotchas — and stays generic (no per-language snippets).
+- [ ] Any first-run setup is in an **idempotent** `scripts/<name>-init.sh`, called from `up`.
+- [ ] A **smoke test** (`tests/smoke-<name>.sh`) is added and passes (`make test`).
+- [ ] **Named volume(s)** declared; generated/secret files are gitignored and rendered from
+      `.env`.
+- [ ] **`.env.example`, README service list, and `CHANGELOG.md` [Unreleased]** updated.
+- [ ] **Scope respected** (see guardrails below).
+- [ ] **Verified live** — `make reset && make up`, connect via `make conn`, `make status`
+      healthy; CI smoke test green.
+
+## Scope guardrails (please respect)
+
+- **FOSS only** — upstream/official images, no vendor "community editions" with non-OSI
+  licenses.
+- **Data backends only** — not an AWS/cloud emulator (no Lambda/IAM/etc.).
+- **Single-node, plaintext, local-only** — no clustering, TLS, or production hardening.
+- **No per-language code snippets** in `conn.sh` — keep connection output generic.
+- **No per-service command junk-drawer** — reuse the generic `conn`/`logs`/`status`.

@@ -1,26 +1,79 @@
-
 services:
-  db:
-    image: postgres:latest
+  db-postgres:
+    image: postgres:18.4@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     environment:
-      POSTGRES_PASSWORD: yolo
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
+      # Postgres 18+ images store data in a version-specific subdir; mount the
+      # whole /var/lib/postgresql (not /var/lib/postgresql/data).
+      - pgdata:/var/lib/postgresql
     ports:
-      - "5432:5432"
+      - "${PGPORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-appdb}"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
 
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.15@sha256:cefc4cc6b7d9d71a9e81e76fb9d7e14038ab5661b539a190eea1b63fa612589a
+    # Run as root so pgAdmin can read the host-owned, 0600 pgpass file mounted
+    # below (libpq requires 0600 perms; the default uid 5050 can't read it).
+    # Local-dev convenience only.
+    user: root
+    depends_on:
+      db-postgres:
+        condition: service_healthy
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@venkatamutyala.com
-      PGADMIN_DEFAULT_PASSWORD: yolo
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?missing — run 'make init' to create .env from .env.example}
     ports:
-      - "8080:80"
-    # depends_on:
-    #   - db
+      - "${PGADMIN_PORT:-8080}:80"
     volumes:
-      - ./pgadmin/servers.json:/pgadmin4/servers.json
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - ./pgadmin/pgpass:/pgadmin4/pgpass:ro
+
+  # S3-compatible object storage. Secrets come from .env (env vars), not garage.toml.
+  s3-garage:
+    image: dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690
+    command: /garage server
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?missing — run 'make init' to create .env from .env.example}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN:?missing — run 'make init' to create .env from .env.example}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+      - garagemeta:/var/lib/garage/meta
+      - garagedata:/var/lib/garage/data
+    ports:
+      - "${GARAGE_S3_PORT:-3900}:3900"     # S3 API
+      - "${GARAGE_WEB_PORT:-3902}:3902"    # static website serving
+      - "${GARAGE_ADMIN_PORT:-3903}:3903"  # admin API
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Web UI for Garage (talks to the admin API).
+  s3-garage-ui:
+    image: khairul169/garage-webui:1.1.0@sha256:17c793551873155065bf9a022dabcde874de808a1f26e648d4b82e168806439c
+    depends_on:
+      s3-garage:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: "http://s3-garage:3903"
+      API_ADMIN_KEY: ${GARAGE_ADMIN_TOKEN:?missing — run 'make init' to create .env from .env.example}
+      S3_ENDPOINT_URL: "http://s3-garage:3900"
+      S3_REGION: ${GARAGE_REGION:-garage}
+    volumes:
+      - ./garage/garage.toml:/etc/garage.toml:ro
+    ports:
+      - "${GARAGE_UI_PORT:-3909}:3909"
+
 volumes:
   pgdata:
+  garagemeta:
+  garagedata:

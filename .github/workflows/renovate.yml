@@ -1,0 +1,36 @@
+name: renovate
+
+# Self-hosted Renovate: runs the CLI in GitHub Actions using the built-in GITHUB_TOKEN
+# (no Renovate App or PAT to install). Repo config lives in renovate.json — including
+# minimumReleaseAge: "30 days", so no update is even proposed until it's 30 days old.
+#
+# GITHUB_TOKEN caveats (accepted, since we deliberately avoid a PAT):
+#   - PRs it opens won't auto-trigger CI (GITHUB_TOKEN-created PRs never do).
+#   - It can't push workflow-file changes, so GitHub Actions version bumps aren't proposed.
+# Add a PAT/App later if you want either of those.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+  workflow_dispatch:       # run on demand from the Actions tab
+
+permissions:
+  contents: write          # create/update branches
+  pull-requests: write     # open update PRs
+  issues: write            # maintain the Dependency Dashboard issue
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: renovatebot/github-action@693b9ef15eec82123529a37c782242f091365961 # v46.1.14
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          RENOVATE_PLATFORM: github
+          LOG_LEVEL: info

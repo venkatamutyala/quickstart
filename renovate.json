@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard"],
+  "labels": ["dependencies"],
+  "minimumReleaseAge": "30 days",
+  "internalChecksFilter": "strict",
+  "packageRules": [
+    {
+      "matchManagers": ["docker-compose"],
+      "groupName": "container images"
+    }
+  ]
+}
