@@ -9,6 +9,13 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 don't edit it by hand; write a good Conventional Commit instead (see
 [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASING.md](RELEASING.md)).
 
+## [1.1.2](https://github.com/venkatamutyala/quickstart/compare/v1.1.1...v1.1.2) (2026-06-06)
+
+
+### Bug Fixes
+
+* run the Valkey UI natively on arm64 via the upstream redis-commander image ([#9](https://github.com/venkatamutyala/quickstart/issues/9)) ([8741fef](https://github.com/venkatamutyala/quickstart/commit/8741fefb2c61487ee99207d72aa881151d2225a3))
+
 ## [1.1.1](https://github.com/venkatamutyala/quickstart/compare/v1.1.0...v1.1.1) (2026-06-06)
 
 
