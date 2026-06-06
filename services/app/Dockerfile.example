@@ -1,0 +1,3 @@
+# Placeholder — not built. `make add-service LANG=<python|node|go> NAME=app` overwrites this
+# directory with a real, runnable Dockerfile + app from recipes/<lang>/.
+# (Named .example so the GHCR CI's service discovery ignores this empty stub.)

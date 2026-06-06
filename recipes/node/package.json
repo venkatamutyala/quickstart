@@ -1,0 +1,16 @@
+{
+  "name": "quickstart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Quickstart hello-world: Express + Postgres + Valkey + OpenTelemetry",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --require @opentelemetry/auto-instrumentations-node/register app.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "redis": "^4.7.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.55.0"
+  }
+}

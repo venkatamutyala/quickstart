@@ -1,0 +1,19 @@
+# Cron / scheduled / one-shot service pattern (language-agnostic).
+# Paste under `services:` in compose.yaml. A cron job is just a service with no ports/labels
+# (it isn't exposed) that runs a loop or is triggered by an external scheduler.
+#
+# Option A — self-scheduling loop (simplest for a POC):
+  cron:
+    build: ./services/cron
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}
+    depends_on:
+      db: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    # Your entrypoint sleeps/loops, or use a scheduler lib. Example:
+    # command: ["sh", "-c", "while true; do python job.py; sleep 3600; done"]
+#
+# Option B — run on demand:  docker compose run --rm cron python job.py
+# Option C — host crontab calls:  docker compose run --rm cron <cmd>

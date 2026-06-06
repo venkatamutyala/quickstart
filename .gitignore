@@ -1,0 +1,14 @@
+# Secrets / generated — never commit
+.env
+*.bak
+pgadmin/pgpass
+traefik/acme.json
+secrets/
+*.pem
+*.key
+id_*
+
+# Local state
+**/__pycache__/
+*.pyc
+node_modules/

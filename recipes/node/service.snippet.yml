@@ -1,0 +1,24 @@
+# Paste this into compose.yaml under `services:` (rename `app` to your service name).
+# `make add-service LANG=node NAME=<name>` copies the code into services/<name>/.
+  app:
+    build: ./services/app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OTEL_SDK_DISABLED: ${OTEL_SDK_DISABLED:-true}   # `make up` sets false
+    ports:
+      - "127.0.0.1:8000:8000"                          # local dev convenience
+    depends_on:
+      db: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:                                            # picked up by Traefik under `make expose`
+      - traefik.enable=true
+      - "traefik.http.routers.app.rule=Host(`app.${EXPOSE_HOST}`)"
+      - traefik.http.routers.app.entrypoints=websecure
+      - traefik.http.routers.app.tls.certresolver=le
+      - traefik.http.services.app.loadbalancer.server.port=8000

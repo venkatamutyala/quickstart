@@ -1,0 +1,8 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.32,<1
+sqlalchemy>=2,<3
+psycopg[binary]>=3,<4
+redis>=5,<6
+# OpenTelemetry (auto-instrumentation). Left unpinned so distro + instrumentations stay in lockstep.
+opentelemetry-distro
+opentelemetry-exporter-otlp

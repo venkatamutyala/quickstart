@@ -1,0 +1,35 @@
+# Traefik v3 — LOCAL ingress. TLS terminates here (cert never touches the VPS).
+# The SSH tunnel forwards VPS:443 -> this Traefik's :443.
+
+entryPoints:
+  websecure:
+    address: ":443"
+
+# Discover services by Docker label, via the socket-proxy (never the raw socket).
+providers:
+  docker:
+    endpoint: "tcp://dockerproxy:2375"
+    exposedByDefault: false
+
+# Real Let's Encrypt via TLS-ALPN-01 (only :443 needed). Works for sslip.io hostnames.
+certificatesResolvers:
+  le:
+    acme:
+      email: "admin@example.com"          # change to yours
+      storage: "/letsencrypt/acme.json"
+      tlsChallenge: {}
+
+# OTel by default -> the otel-lgtm collector. Ingress traces/metrics show in Grafana
+# even before you add an instrumented app. (No-op if the observability profile isn't up.)
+metrics:
+  otlp:
+    http:
+      endpoint: "http://lgtm:4318/v1/metrics"
+tracing:
+  otlp:
+    http:
+      endpoint: "http://lgtm:4318/v1/traces"
+
+accessLog: {}     # to stdout
+log:
+  level: INFO

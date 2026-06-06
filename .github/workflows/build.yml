@@ -1,0 +1,63 @@
+name: build
+
+# Builds every service under services/* that has a Dockerfile, and pushes to GHCR.
+# Copy-once: works unchanged across POCs. Empty template = nothing to build (no-op).
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.find.outputs.services }}
+      any: ${{ steps.find.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        run: |
+          svcs=$(find services -mindepth 1 -maxdepth 1 -type d \
+                   -exec test -f '{}/Dockerfile' \; -print \
+                 | sed 's#services/##' | jq -R -s -c 'split("\n") | map(select(length>0))')
+          echo "services=$svcs" >> "$GITHUB_OUTPUT"
+          if [ "$svcs" = "[]" ]; then echo "any=false" >> "$GITHUB_OUTPUT"; else echo "any=true" >> "$GITHUB_OUTPUT"; fi
+          echo "Discovered: $svcs"
+
+  build:
+    needs: discover
+    if: needs.discover.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.discover.outputs.services) }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-${{ matrix.service }}
+          tags: |
+            type=sha
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+# NOTE: new GHCR packages default to PRIVATE even in a public repo. After the first push,
+# flip visibility once in the package settings (or wire an org default). See docs/ci.md.
