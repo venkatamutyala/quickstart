@@ -20,21 +20,48 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:9.15@sha256:cefc4cc6b7d9d71a9e81e76fb9d7e14038ab5661b539a190eea1b63fa612589a
-    # Run as root so pgAdmin can read the host-owned, 0600 pgpass file mounted
-    # below (libpq requires 0600 perms; the default uid 5050 can't read it).
-    # Local-dev convenience only.
-    user: root
     depends_on:
       db-postgres:
         condition: service_healthy
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      # The pre-configured server gets its password from this env var, read at
+      # connect time by the PasswordExecCommand in servers.json. This avoids a
+      # mounted pgpass file: pgAdmin's workers run as uid 5050 and can't read a
+      # host-owned 0600 pgpass (and libpq rejects any looser perms).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      # Desktop (single-user) mode — fits this local-dev quickstart: no login or
+      # master-password prompt, and it enables PasswordExecCommand (blocked in
+      # multi-user server mode without an extra opt-in flag).
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      # The auto-login desktop user must match the account the image creates
+      # from PGADMIN_DEFAULT_EMAIL (else pgAdmin 401s looking for its default
+      # pgadmin4@pgadmin.org user). Quoted so it lands as a Python string.
+      PGADMIN_CONFIG_DESKTOP_USER: "'${PGADMIN_EMAIL:-admin@example.com}'"
+      # Desktop mode is normally gated by a per-launch key the desktop runtime
+      # injects; without it every request 401s. Setting the key empty disables
+      # that gate so the browser can reach pgAdmin directly.
+      PGADMIN_INT_KEY: ""
+      # Re-import servers.json on every boot so it stays the source of truth.
+      # pgAdmin's /var/lib/pgadmin is a persisted anonymous volume and it skips
+      # re-importing existing servers, so without this a stale server definition
+      # survives config changes across restarts.
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+      # Trust the X-Forwarded-* headers set by a single reverse proxy (e.g. a
+      # dev tunnel / Codespaces port-forward). Without this pgAdmin compares the
+      # browser's tunnel-host Referer against its own localhost view and rejects
+      # the request with "The referrer does not match the host."
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: "1"
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: "1"
+      PGADMIN_CONFIG_PROXY_X_HOST_COUNT: "1"
+      PGADMIN_CONFIG_PROXY_X_PORT_COUNT: "1"
+      PGADMIN_CONFIG_PROXY_X_PREFIX_COUNT: "1"
     ports:
       - "${PGADMIN_PORT:-8080}:80"
     volumes:
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
-      - ./pgadmin/pgpass:/pgadmin4/pgpass:ro
 
   # S3-compatible object storage. Secrets come from .env (env vars), not garage.toml.
   s3-garage:

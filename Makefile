@@ -1,12 +1,12 @@
 .DEFAULT_GOAL := help
 SHELL := /bin/bash
 
-# Load .env (if present) so url/psql/info can read the values.
+# Load .env (if present) so conn/psql/info can read the values.
 ifneq (,$(wildcard .env))
 include .env
 endif
 
-.PHONY: help init up down reset url conn env example psql info status logs test version garage-init tunnel tunnel-login
+.PHONY: help init up down reset conn env example psql info status logs test version garage-init tunnel tunnel-login
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) \
@@ -33,9 +33,6 @@ down: ## Stop the stack (keeps data)
 reset: ## Stop and DELETE the data volume (fresh database next 'up')
 	docker compose down --volumes
 
-url: _require-env ## Print the connection string for your app
-	@echo "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(PGPORT)/$(POSTGRES_DB)?sslmode=disable"
-
 conn: _require-env ## Print broken-out connection details (ONLY=postgres|s3|valkey|rabbitmq)
 	@./scripts/conn.sh $(ONLY)
 
@@ -59,11 +56,11 @@ version: ## Print the current version (git tag)
 info: _require-env ## Show URLs and credentials for this instance
 	@printf 'Version   : %s\n' "$$(git describe --tags --always --dirty 2>/dev/null || echo 'dev (no tag)')"
 	@echo "Postgres  : postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(PGPORT)/$(POSTGRES_DB)?sslmode=disable"
-	@echo "pgAdmin   : http://localhost:$(PGADMIN_PORT)  ($(PGADMIN_EMAIL) / $(PGADMIN_PASSWORD))"
+	@echo "pgAdmin   : http://localhost:$(PGADMIN_PORT)  (opens straight in — no login, Postgres pre-connected)"
 	@echo "S3 (Garage): http://localhost:$(GARAGE_S3_PORT)  (region $(GARAGE_REGION), bucket $(GARAGE_BUCKET))"
-	@echo "Garage UI : http://localhost:$(GARAGE_UI_PORT)"
-	@echo "Valkey    : redis://default:$(VALKEY_PASSWORD)@localhost:$(VALKEY_PORT)/0  (UI http://localhost:$(VALKEY_UI_PORT))"
-	@echo "RabbitMQ  : amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@localhost:$(RABBITMQ_PORT)/  (UI http://localhost:$(RABBITMQ_MANAGEMENT_PORT))"
+	@echo "Garage UI : http://localhost:$(GARAGE_UI_PORT)  (opens straight in — no login)"
+	@echo "Valkey    : redis://default:$(VALKEY_PASSWORD)@localhost:$(VALKEY_PORT)/0  (UI http://localhost:$(VALKEY_UI_PORT) — no login)"
+	@echo "RabbitMQ  : amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@localhost:$(RABBITMQ_PORT)/  (UI http://localhost:$(RABBITMQ_MANAGEMENT_PORT) — log in: $(RABBITMQ_USER) / $(RABBITMQ_PASSWORD))"
 	@echo "Run 'make conn' for full per-service connection details."
 
 status: _require-env ## Show live container status/health
@@ -90,6 +87,4 @@ _require-env:
 # Render config that embeds .env values, so .env stays the single source of truth.
 _render:
 	@sed "s|__POSTGRES_USER__|$(POSTGRES_USER)|g" pgadmin/servers.json.tmpl > pgadmin/servers.json
-	@printf 'db-postgres:5432:*:%s:%s\n' "$(POSTGRES_USER)" "$(POSTGRES_PASSWORD)" > pgadmin/pgpass
-	@chmod 600 pgadmin/pgpass
 	@sed "s|__GARAGE_REGION__|$(GARAGE_REGION)|g" garage/garage.toml.tmpl > garage/garage.toml

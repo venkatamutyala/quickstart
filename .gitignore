@@ -1,6 +1,5 @@
 # Local secrets / generated files (rendered from .env by `make`)
 .env
-pgadmin/pgpass
 pgadmin/servers.json
 garage/garage.toml
 
@@ -9,3 +8,4 @@ garage/garage.toml
 *.swp
 .idea/
 .vscode/
+.claude/

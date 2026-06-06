@@ -33,9 +33,11 @@ fi
 
 if [ "$#" -gt 0 ]; then
   PORTS=("$@")
+  default_guis=0
 else
   PORTS=("${PGADMIN_PORT:-8080}" "${GARAGE_UI_PORT:-3909}" \
          "${VALKEY_UI_PORT:-8081}" "${RABBITMQ_MANAGEMENT_PORT:-15672}")
+  default_guis=1
 fi
 
 PORT_FLAGS=()
@@ -47,7 +49,19 @@ if [ "${ANON:-0}" = "1" ]; then
   echo "!! Anonymous access ENABLED — anyone with the URL can reach these ports"
 fi
 
-echo "Exposing GUI ports via dev tunnel: ${PORTS[*]}  (pgAdmin=${PGADMIN_PORT:-8080}, Garage UI=${GARAGE_UI_PORT:-3909}, Valkey UI=${VALKEY_UI_PORT:-8081}, RabbitMQ UI=${RABBITMQ_MANAGEMENT_PORT:-15672})"
+if [ "$default_guis" = "1" ]; then
+  # Match each https://*-<port>.devtunnels.ms URL printed below to a GUI. Most
+  # open straight in; RabbitMQ is the only one with a login, so show its creds.
+  cat <<EOF
+Exposing the bundled GUIs via dev tunnel:
+  pgAdmin    port ${PGADMIN_PORT:-8080}   — opens straight in (Postgres pre-connected)
+  Garage UI  port ${GARAGE_UI_PORT:-3909}   — opens straight in
+  Valkey UI  port ${VALKEY_UI_PORT:-8081}   — opens straight in
+  RabbitMQ   port ${RABBITMQ_MANAGEMENT_PORT:-15672}  — log in with  ${RABBITMQ_USER:-rabbit} / ${RABBITMQ_PASSWORD:-<set RABBITMQ_PASSWORD in .env>}
+EOF
+else
+  echo "Exposing ports via dev tunnel: ${PORTS[*]}"
+fi
 echo "Open the per-port https://*.devtunnels.ms URLs printed below. Ctrl-C to stop."
 echo
 exec devtunnel host "${PORT_FLAGS[@]}" "${ANON_FLAG[@]}"

@@ -29,11 +29,11 @@ make conn    # print full connection details for every service
 
 ```
 Postgres  : postgresql://postgres:postgres@localhost:5432/appdb?sslmode=disable
-pgAdmin   : http://localhost:8080  (admin@example.com / admin)
+pgAdmin   : http://localhost:8080  (opens straight in — no login, Postgres pre-connected)
 S3 (Garage): http://localhost:3900  (region garage, bucket appbucket)
-Garage UI : http://localhost:3909
-Valkey    : redis://default:valkey@localhost:6379/0  (UI http://localhost:8081)
-RabbitMQ  : amqp://rabbit:rabbit@localhost:5672/  (UI http://localhost:15672)
+Garage UI : http://localhost:3909  (opens straight in — no login)
+Valkey    : redis://default:valkey@localhost:6379/0  (UI http://localhost:8081 — no login)
+RabbitMQ  : amqp://rabbit:rabbit@localhost:5672/  (UI http://localhost:15672 — log in: rabbit / rabbit)
 ```
 
 ## Connection details
@@ -95,8 +95,12 @@ make tunnel-login   # one-time: GitHub login (device-code flow, works headless)
 make tunnel         # host the GUIs; opens https://*.devtunnels.ms URLs (Ctrl-C to stop)
 ```
 
-- Access requires authentication by default. Add `ANON=1` (`make tunnel ANON=1`) to allow
-  anyone with the URL — convenient, but each GUI's own login is then your only gate.
+- Access requires authentication by default (GitHub login on the tunnel). Add `ANON=1`
+  (`make tunnel ANON=1`) to drop that and allow anyone with the URL. Be careful: most bundled
+  GUIs have **no login of their own** — pgAdmin opens straight into a pre-connected Postgres,
+  and the Garage and Valkey UIs open straight in too — so `ANON=1` exposes them fully to anyone
+  with the URL. Only RabbitMQ prompts for credentials. Keep tunnels authenticated unless you
+  mean to share them.
 - `./scripts/tunnel.sh <port> [<port>...]` tunnels specific ports, so any GUI added later
   exposes the same way.
 - Needs the `devtunnel` CLI; `make tunnel` prints install instructions if it's missing.

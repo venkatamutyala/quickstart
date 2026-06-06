@@ -84,8 +84,8 @@ Keep it **generic** — no per-language code snippets (that matrix is unmaintain
 - Reuse the generic `conn` / `logs` / `status` — avoid per-service commands.
 
 ### 7. Generated / secret files
-If you render a config or passfile from `.env` (like `_render-pgpass`), do it in a Makefile
-helper and add the output path to `.gitignore`.
+If you render a config from `.env` (like `servers.json` / `garage.toml` in `_render`), do it
+in a Makefile helper and add the output path to `.gitignore`.
 
 ### 8. Add a smoke test, then verify
 Create `tests/smoke-<name>.sh` (copy `tests/smoke-postgres.sh`): source `tests/lib.sh`,
