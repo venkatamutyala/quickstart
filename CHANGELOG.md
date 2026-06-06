@@ -9,6 +9,17 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 don't edit it by hand; write a good Conventional Commit instead (see
 [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASING.md](RELEASING.md)).
 
+## [2.0.0](https://github.com/venkatamutyala/quickstart/compare/v1.1.2...v2.0.0) (2026-06-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* removed the `make psql`, `make example`, and `make version` targets. Use `docker compose exec db-postgres psql ...` for a Postgres shell, and `make info` (or `git describe --tags`) for the version.
+
+### Code Refactoring
+
+* streamline the make command surface for DevX ([#11](https://github.com/venkatamutyala/quickstart/issues/11)) ([7b82971](https://github.com/venkatamutyala/quickstart/commit/7b82971f4dfe10b0e9cf7ca3108c49c3c83f4970))
+
 ## [1.1.2](https://github.com/venkatamutyala/quickstart/compare/v1.1.1...v1.1.2) (2026-06-06)
 
 
