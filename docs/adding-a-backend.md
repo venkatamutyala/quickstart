@@ -101,7 +101,7 @@ make status                    # all services healthy
 
 ### 9. Document
 - Add the service to the README service list.
-- Add an entry under `## [Unreleased]` in `CHANGELOG.md`.
+- No changelog edit needed — it's generated from your Conventional Commit message.
 
 ## Worked sketch — Valkey (illustrative)
 
