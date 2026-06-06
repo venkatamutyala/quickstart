@@ -4,6 +4,7 @@
   "labels": ["dependencies"],
   "minimumReleaseAge": "30 days",
   "internalChecksFilter": "strict",
+  "rebaseWhen": "behind-base-branch",
   "packageRules": [
     {
       "matchManagers": ["docker-compose"],
