@@ -6,6 +6,9 @@ name: renovate
 #
 # GITHUB_TOKEN caveats (accepted, since we deliberately avoid a PAT):
 #   - PRs it opens won't auto-trigger CI (GITHUB_TOKEN-created PRs never do).
+#     main's branch protection requires CI to pass, so these PRs look stuck.
+#     Workaround: a human closes + reopens the PR (web UI or `gh pr reopen <N>`) —
+#     that fires a `reopened` event under YOUR identity, which does trigger CI.
 #   - It can't push workflow-file changes, so GitHub Actions version bumps aren't proposed.
 # Add a PAT/App later if you want either of those.
 
