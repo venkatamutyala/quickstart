@@ -7,6 +7,14 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 [Conventional Commits](https://www.conventionalcommits.org/). Add your change under
 `## [Unreleased]`; maintainers cut a dated, versioned section at release time.
 
+## [1.1.0](https://github.com/venkatamutyala/quickstart/compare/v1.0.0...v1.1.0) (2026-06-06)
+
+
+### Features
+
+* add Valkey cache and RabbitMQ broker backends ([ed466c5](https://github.com/venkatamutyala/quickstart/commit/ed466c522d39f74c47b08e2027e4bb10b1ea25a4))
+* add Valkey cache and RabbitMQ broker backends ([63ff668](https://github.com/venkatamutyala/quickstart/commit/63ff6689df8c9d90bffa3f9767e69320392dc749))
+
 ## 1.0.0 (2026-06-06)
 
 
