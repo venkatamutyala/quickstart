@@ -7,6 +7,13 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 [Conventional Commits](https://www.conventionalcommits.org/). Add your change under
 `## [Unreleased]`; maintainers cut a dated, versioned section at release time.
 
+## [1.1.1](https://github.com/venkatamutyala/quickstart/compare/v1.1.0...v1.1.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* **pgadmin:** connect through dev tunnels with an auto-connected server ([#6](https://github.com/venkatamutyala/quickstart/issues/6)) ([cdc97fd](https://github.com/venkatamutyala/quickstart/commit/cdc97fd5568e33066456ceed2dd29b5585d03fa0))
+
 ## [Unreleased]
 
 ### Changed
