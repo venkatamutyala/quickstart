@@ -1,0 +1,26 @@
+# Single-node, local-dev Garage config. RENDERED from .env by `make` (do not edit the
+# generated garage.toml — edit this .tmpl). Secrets (rpc_secret, admin_token) are supplied
+# via environment variables from .env, not stored here.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+# Single-node only; never dials a peer, so 127.0.0.1 is fine here.
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+# Rendered from GARAGE_REGION in .env — clients sign requests with this region.
+s3_region = "__GARAGE_REGION__"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = ".web.garage.localhost"
+index = "index.html"
+
+[admin]
+api_bind_addr = "[::]:3903"

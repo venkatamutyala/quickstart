@@ -1,0 +1,11 @@
+# Local secrets / generated files (rendered from .env by `make`)
+.env
+pgadmin/pgpass
+pgadmin/servers.json
+garage/garage.toml
+
+# OS / editor noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
