@@ -12,6 +12,10 @@ A FOSS, **local-dev** quickstart that stands up the **data backends** an app nee
   is the single source of truth and values are generated from it.
 - **Secrets are enforced** via Compose `${VAR:?...}`. Keep that pattern; never add a
   guessable fallback for a real secret.
+- **Never commit secrets or generated files.** `.env` and the rendered `pgadmin/pgpass`,
+  `pgadmin/servers.json`, and `garage/garage.toml` are gitignored — they're produced from
+  `.env` + the `.tmpl` files at `make up`. Edit a `.tmpl` or `.env.example`, never the
+  generated output, and verify `git status` is clean of them before committing.
 - **Pin images by digest** (`tag@sha256:...`).
 - **Conventional Commits** are required — enforced by CI on every PR
   (`.github/workflows/ci.yml`). Add a `CHANGELOG.md` entry under `## [Unreleased]` for any

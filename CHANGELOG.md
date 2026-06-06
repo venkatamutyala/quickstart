@@ -42,3 +42,4 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
   exempt trusted automation (Renovate/release-please) so their PRs don't fail.
 - README: positioning vs LocalStack/Testcontainers/Aspire; trimmed the command list to point
   at `make help`.
+- Documented "never commit secrets or generated files" in AGENTS.md and CONTRIBUTING.md.

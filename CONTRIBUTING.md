@@ -13,6 +13,14 @@ make up        # start the stack
 make status    # confirm everything is healthy
 ```
 
+## Secrets & generated files
+
+**Never commit secrets or generated files.** `.env` and the rendered `pgadmin/pgpass`,
+`pgadmin/servers.json`, and `garage/garage.toml` are gitignored — they're produced from
+`.env` + the committed `.tmpl` files (and `.env.example`) at `make up`. Edit a template or
+`.env.example`, never the generated output, and keep your local `.env` out of git. If you
+add a backend that renders config, render it from `.env` and gitignore the output too.
+
 ## Adding a new backend
 
 Follow the pattern in **[docs/adding-a-backend.md](docs/adding-a-backend.md)**. It keeps
