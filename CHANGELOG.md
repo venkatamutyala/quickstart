@@ -43,3 +43,8 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 - README: positioning vs LocalStack/Testcontainers/Aspire; trimmed the command list to point
   at `make help`.
 - Documented "never commit secrets or generated files" in AGENTS.md and CONTRIBUTING.md.
+
+### Fixed
+- `.env.example`: an inline comment after `GARAGE_REGION` leaked trailing whitespace into the
+  value under Make/Compose parsing, corrupting the rendered Garage region and failing CI's
+  smoke test. Comments now live on their own lines.
