@@ -7,6 +7,22 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 [Conventional Commits](https://www.conventionalcommits.org/). Add your change under
 `## [Unreleased]`; maintainers cut a dated, versioned section at release time.
 
+## 1.0.0 (2026-06-06)
+
+
+### Features
+
+* add initial project setup with PostgreSQL and pgAdmin using Docker Compose ([f9ac0e1](https://github.com/venkatamutyala/quickstart/commit/f9ac0e1b00a70b15f3b88cdeb854b8c0be0fb6eb))
+* adding example of flyway usage ([6e54a4f](https://github.com/venkatamutyala/quickstart/commit/6e54a4fcdd252c6c8e9d0c3d3bf1950344d36ff3))
+* local FOSS data-backends quickstart (Postgres + Garage S3) ([77d2bbd](https://github.com/venkatamutyala/quickstart/commit/77d2bbd4283872712572a62fa6b5098c31e0a24c))
+* local FOSS data-backends quickstart (Postgres + Garage S3) ([261bc5e](https://github.com/venkatamutyala/quickstart/commit/261bc5e61c83f6956f927cebba8350e63d7b1944))
+* update PostgreSQL and pgAdmin configurations with new credentials and init scripts ([8211c86](https://github.com/venkatamutyala/quickstart/commit/8211c86ef78590dfeb89e710802878addcbe433c))
+
+
+### Bug Fixes
+
+* drop inline comment on GARAGE_REGION (trailing-space bug) ([628a8ea](https://github.com/venkatamutyala/quickstart/commit/628a8ead085f2d358d422853c0de57b6ed59f008))
+
 ## [Unreleased]
 
 
