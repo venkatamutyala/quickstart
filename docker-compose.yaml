@@ -121,9 +121,12 @@ services:
       timeout: 3s
       retries: 12
 
-  # Web UI for Valkey (redis-commander, MIT).
+  # Web UI for Valkey (redis-commander, MIT). Use the upstream author's GitHub
+  # Container Registry build: it's multi-arch (amd64 + arm64), so it runs
+  # natively on Apple Silicon. The Docker Hub rediscommander/redis-commander
+  # image is amd64-only and stale, which broke `make up` on arm64.
   cache-valkey-ui:
-    image: rediscommander/redis-commander:latest@sha256:19cd0c49f418779fa2822a0496c5e6516d0c792effc39ed20089e6268477e40a
+    image: ghcr.io/joeferner/redis-commander:latest@sha256:1ad484c1fc0a3b4072dfa2bb10d44f0eba8ecb342c8c0f9e17cb21a6557e4b7e
     depends_on:
       cache-valkey:
         condition: service_healthy
