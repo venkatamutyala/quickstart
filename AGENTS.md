@@ -1,0 +1,41 @@
+# Agent guide — quickstart
+
+Always-on context for AI agents working in this repo. Kept intentionally lean — follow the
+links for detail instead of duplicating it here.
+
+## What this is
+A FOSS, **local-dev** quickstart that stands up the **data backends** an app needs (Postgres
++ pgAdmin, Garage S3 + web UI; more planned). Local only — never production.
+
+## Golden rules
+- **Don't hardcode connection details.** Run `make conn` (or `make conn ONLY=<svc>`) — `.env`
+  is the single source of truth and values are generated from it.
+- **Secrets are enforced** via Compose `${VAR:?...}`. Keep that pattern; never add a
+  guessable fallback for a real secret.
+- **Pin images by digest** (`tag@sha256:...`).
+- **Conventional Commits** are required — enforced by CI on every PR
+  (`.github/workflows/ci.yml`). Add a `CHANGELOG.md` entry under `## [Unreleased]` for any
+  notable change.
+- **A human owns each commit**: the person committing signs off (`git commit -s`, DCO);
+  credit AI as a `Co-authored-by:` trailer, never as the commit author. CI enforces this.
+- **Verify changes live** before claiming success: `make reset && make up`, connect with
+  `make conn`, check `make status`. CI runs a smoke test (boot stack + Postgres/S3 checks).
+- **Reviewing a change?** Use the review checklist in
+  [CONTRIBUTING.md](CONTRIBUTING.md#review-checklist).
+
+## Scope guardrails (do not drift)
+- FOSS only — upstream/official images, no non-OSI "community editions".
+- Data backends only — **not** an AWS/cloud emulator (no Lambda/IAM/etc.).
+- Single-node, plaintext, local-only — no clustering/TLS/prod hardening.
+- No per-language code snippets in `conn.sh`; no per-service command junk-drawer.
+
+## Common commands
+`make help` lists everything. Most-used: `init`, `up`, `conn`, `status`, `logs`
+(`SVC=<service>`), `psql`, `down`, `reset`.
+
+## Where things live
+- Full usage & connection guidance → [README.md](README.md)
+- Contribution workflow, commit/changelog rules → [CONTRIBUTING.md](CONTRIBUTING.md)
+- **How to add a new backend (the pattern)** → [docs/adding-a-backend.md](docs/adding-a-backend.md)
+- Service definitions → `docker-compose.yaml`; config in `.env` (from `.env.example`)
+- Logic → `scripts/` (`conn.sh`, `garage-init.sh`, `tunnel.sh`); orchestration → `Makefile`
