@@ -267,6 +267,44 @@ services:
     ports:
       - "${OPENSEARCH_DASHBOARDS_PORT:-5601}:5601"
 
+  # On-demand debug box: every backend's native CLI, preloaded and joined to the compose
+  # network. NOT started by `make up` (profile-gated) and removed on exit — launch it with
+  # `make debug`. It's the stack's only locally-built image (see debug/Dockerfile); the base
+  # is digest-pinned and downloaded binaries are checksum-verified. No connection detail is
+  # hardcoded: `env_file` pulls in .env and the `environment` block below pre-wires each
+  # client to the in-Docker hostnames (the same ones `make conn` prints) so the CLIs connect
+  # with zero/minimal args.
+  debug:
+    profiles: ["debug"]
+    build:
+      context: ./debug
+    image: quickstart-debug:local
+    env_file: .env
+    environment:
+      # Postgres — psql/pg_dump auto-connect via libpq's PG* vars
+      PGHOST: db-postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-appdb}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      # S3 (Garage) — aws targets the endpoint; mc gets a ready 'garage' alias via MC_HOST_*
+      AWS_ENDPOINT_URL: http://s3-garage:3900
+      AWS_REGION: ${GARAGE_REGION:-garage}
+      AWS_ACCESS_KEY_ID: ${GARAGE_ACCESS_KEY_ID:?missing — run 'make init' to create .env from .env.example}
+      AWS_SECRET_ACCESS_KEY: ${GARAGE_SECRET_ACCESS_KEY:?missing — run 'make init' to create .env from .env.example}
+      MC_HOST_garage: http://${GARAGE_ACCESS_KEY_ID}:${GARAGE_SECRET_ACCESS_KEY}@s3-garage:3900
+      # Valkey — redis-cli reads the password from REDISCLI_AUTH (still pass -h cache-valkey)
+      REDISCLI_AUTH: ${VALKEY_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      # Kafka — bootstrap address for kcat and the kafka-*.sh tools
+      KAFKA_BOOTSTRAP: stream-kafka:9092
+      # RabbitMQ — AMQP URL for amqp-tools; user/pass for the management API
+      RABBITMQ_USER: ${RABBITMQ_USER:-rabbit}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?missing — run 'make init' to create .env from .env.example}
+      AMQP_URL: amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASSWORD}@queue-rabbitmq:5672/%2F
+      # OpenSearch — REST endpoint for curl
+      OPENSEARCH_URL: http://search-opensearch:9200
+    command: ["bash", "-l"]
+
 volumes:
   pgdata:
   garagemeta:
