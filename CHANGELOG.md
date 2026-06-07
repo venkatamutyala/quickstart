@@ -9,6 +9,14 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 don't edit it by hand; write a good Conventional Commit instead (see
 [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASING.md](RELEASING.md)).
 
+## [2.1.0](https://github.com/venkatamutyala/quickstart/compare/v2.0.0...v2.1.0) (2026-06-07)
+
+
+### Features
+
+* add Kafka and OpenSearch backends ([956bc78](https://github.com/venkatamutyala/quickstart/commit/956bc7815f983d39c5e24a109f1e5a933ab5df79))
+* add Kafka and OpenSearch backends ([4b58e6e](https://github.com/venkatamutyala/quickstart/commit/4b58e6e101cdf5ab7177a32c47660c1fabc17bfb))
+
 ## [2.0.0](https://github.com/venkatamutyala/quickstart/compare/v1.1.2...v2.0.0) (2026-06-06)
 
 
