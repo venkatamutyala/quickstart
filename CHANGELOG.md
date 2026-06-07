@@ -9,6 +9,14 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 don't edit it by hand; write a good Conventional Commit instead (see
 [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASING.md](RELEASING.md)).
 
+## [2.3.0](https://github.com/venkatamutyala/quickstart/compare/v2.2.0...v2.3.0) (2026-06-07)
+
+
+### Features
+
+* add make ai handoff briefing for AI sessions ([26f9bf2](https://github.com/venkatamutyala/quickstart/commit/26f9bf2fa40b7306fbbe684d123faeae64535aa1))
+* add make ai handoff briefing for AI sessions ([3453e01](https://github.com/venkatamutyala/quickstart/commit/3453e010f78e0397750c651c85be207b14c62eba))
+
 ## [2.2.0](https://github.com/venkatamutyala/quickstart/compare/v2.1.0...v2.2.0) (2026-06-07)
 
 
