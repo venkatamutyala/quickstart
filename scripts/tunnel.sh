@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Expose local GUIs (default: pgAdmin, Garage UI, Valkey UI, RabbitMQ UI) via
+# Expose local GUIs (default: pgAdmin, Garage UI, Valkey UI, RabbitMQ UI, Kafka UI,
+# OpenSearch Dashboards) via
 # Microsoft Dev Tunnels so you can reach them from a browser when this stack runs
 # on a remote/headless box.
 #
@@ -36,7 +37,8 @@ if [ "$#" -gt 0 ]; then
   default_guis=0
 else
   PORTS=("${PGADMIN_PORT:-8080}" "${GARAGE_UI_PORT:-3909}" \
-         "${VALKEY_UI_PORT:-8081}" "${RABBITMQ_MANAGEMENT_PORT:-15672}")
+         "${VALKEY_UI_PORT:-8081}" "${RABBITMQ_MANAGEMENT_PORT:-15672}" \
+         "${KAFKA_UI_PORT:-8082}" "${OPENSEARCH_DASHBOARDS_PORT:-5601}")
   default_guis=1
 fi
 
@@ -54,10 +56,12 @@ if [ "$default_guis" = "1" ]; then
   # open straight in; RabbitMQ is the only one with a login, so show its creds.
   cat <<EOF
 Exposing the bundled GUIs via dev tunnel:
-  pgAdmin    port ${PGADMIN_PORT:-8080}   — opens straight in (Postgres pre-connected)
-  Garage UI  port ${GARAGE_UI_PORT:-3909}   — opens straight in
-  Valkey UI  port ${VALKEY_UI_PORT:-8081}   — opens straight in
-  RabbitMQ   port ${RABBITMQ_MANAGEMENT_PORT:-15672}  — log in with  ${RABBITMQ_USER:-rabbit} / ${RABBITMQ_PASSWORD:-<set RABBITMQ_PASSWORD in .env>}
+  pgAdmin     port ${PGADMIN_PORT:-8080}   — opens straight in (Postgres pre-connected)
+  Garage UI   port ${GARAGE_UI_PORT:-3909}   — opens straight in
+  Valkey UI   port ${VALKEY_UI_PORT:-8081}   — opens straight in
+  RabbitMQ    port ${RABBITMQ_MANAGEMENT_PORT:-15672}  — log in with  ${RABBITMQ_USER:-rabbit} / ${RABBITMQ_PASSWORD:-<set RABBITMQ_PASSWORD in .env>}
+  Kafka UI    port ${KAFKA_UI_PORT:-8082}   — opens straight in
+  OpenSearch  port ${OPENSEARCH_DASHBOARDS_PORT:-5601}   — Dashboards, opens straight in
 EOF
 else
   echo "Exposing ports via dev tunnel: ${PORTS[*]}"
