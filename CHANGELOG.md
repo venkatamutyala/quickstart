@@ -9,6 +9,13 @@ aims for [Semantic Versioning](https://semver.org/), and commits follow
 don't edit it by hand; write a good Conventional Commit instead (see
 [CONTRIBUTING.md](CONTRIBUTING.md) and [RELEASING.md](RELEASING.md)).
 
+## [2.2.0](https://github.com/venkatamutyala/quickstart/compare/v2.1.0...v2.2.0) (2026-06-07)
+
+
+### Features
+
+* add on-demand debug container with backend CLIs ([#17](https://github.com/venkatamutyala/quickstart/issues/17)) ([4ad8b78](https://github.com/venkatamutyala/quickstart/commit/4ad8b78d4fd4caab88b4648080c94bfff448a31e))
+
 ## [2.1.0](https://github.com/venkatamutyala/quickstart/compare/v2.0.0...v2.1.0) (2026-06-07)
 
 
