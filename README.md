@@ -136,6 +136,24 @@ It's ephemeral (removed on exit) and **not** part of `make up` — it won't show
 `make status`. The image is built locally (the stack's only built image); first launch
 builds it (it's large — bundles a JRE for the Kafka tools).
 
+## Hand the running stack to an AI assistant
+
+Bringing this stack up, then handing it to a separate AI coding session (e.g. another
+Claude Code session working on your app) to build or debug against? `make ai` prints a
+compact, **paste-into-a-prompt** briefing: a menu of every backend with its live up/down
+status, host **and** in-Docker connection strings, a one-line debug command, and the
+guardrails (it's a disposable local stack — use, write, and reset freely; never treat it as
+production). It's generated from `.env`, so it always matches your live values.
+
+```bash
+make ai      # print the handoff + write it to AI-HANDOFF-PROMPT.md (gitignored)
+```
+
+Hand it off by either appending the text to your prompt, attaching the generated
+`AI-HANDOFF-PROMPT.md`, or just telling the other session: *"the data stack lives at
+`<this dir>` and is running — run `make ai` there."* The briefing points the assistant at
+`make debug CMD='…'` for poking the backends, so it needs no host CLIs of its own.
+
 ## Remote / headless: expose the GUIs with a dev tunnel
 
 Running this on a remote or headless box and want to reach the GUIs from your laptop's
@@ -168,6 +186,7 @@ ones you'll use most:
 make init   make up   make conn   make env
 make info   make status   make logs   make down   make reset
 make debug  (shell with all backend CLIs preloaded)
+make ai     (handoff briefing for a separate AI session)
 ```
 
 ## Schema & migrations

@@ -35,7 +35,9 @@ A FOSS, **local-dev** quickstart that stands up the **data backends** an app nee
 
 ## Common commands
 `make help` lists everything (grouped Core / Introspect / Advanced). Most-used: `init`, `up`,
-`conn`, `info`, `status`, `logs` (`SVC=<service>`), `down`, `reset`.
+`conn`, `info`, `status`, `logs` (`SVC=<service>`), `down`, `reset`. `make ai` prints a
+handoff briefing (also written to gitignored `AI-HANDOFF-PROMPT.md`) for handing the running
+stack to a separate AI session.
 
 ## Where things live
 - Full usage & connection guidance → [README.md](README.md)
