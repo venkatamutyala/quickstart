@@ -108,6 +108,34 @@ your checkout), or add your app as a service in `docker-compose.yaml`.
 **Wire it up fast:** `eval "$(make env)"` exports `DATABASE_URL` / `PG*` / `AWS_*` into your
 shell so your app picks them up against the running stack.
 
+## Debugging from the CLI
+
+Want to poke a backend with its native CLI without installing anything on your host?
+`make debug` drops you into an on-demand container that's joined to the compose network with
+every backend's CLI preloaded **and pre-wired** to the stack — so they connect with no
+flags:
+
+```bash
+make up         # start the stack first
+make debug      # interactive shell; type `help` for a copy-paste cheatsheet
+```
+
+Inside the box: `psql` / `pg_dump` (Postgres), `aws` + `mc` (S3/Garage), `redis-cli`
+(Valkey), `kcat` + the official `kafka-*.sh` tools (Kafka), `amqp-tools` + `curl` (RabbitMQ),
+`curl` + `jq` (OpenSearch), plus `dig`/`nc` for network checks. The connection details come
+from `.env` and the in-Docker hostnames at runtime — nothing is baked into the image.
+
+```bash
+make debug                      # interactive shell
+make debug CMD='aws s3 ls'      # run one command and exit
+make debug CMD='psql -c "\l"'   # one-off query
+make debug-build                # rebuild the image after editing debug/Dockerfile
+```
+
+It's ephemeral (removed on exit) and **not** part of `make up` — it won't show in
+`make status`. The image is built locally (the stack's only built image); first launch
+builds it (it's large — bundles a JRE for the Kafka tools).
+
 ## Remote / headless: expose the GUIs with a dev tunnel
 
 Running this on a remote or headless box and want to reach the GUIs from your laptop's
@@ -139,6 +167,7 @@ ones you'll use most:
 ```
 make init   make up   make conn   make env
 make info   make status   make logs   make down   make reset
+make debug  (shell with all backend CLIs preloaded)
 ```
 
 ## Schema & migrations

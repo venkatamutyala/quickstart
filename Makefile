@@ -6,7 +6,7 @@ ifneq (,$(wildcard .env))
 include .env
 endif
 
-.PHONY: help init up down reset conn env info status logs test tunnel tunnel-login
+.PHONY: help init up down reset conn env info status logs test tunnel tunnel-login debug debug-build
 
 ##@ Core
 help: ## Show this help
@@ -59,6 +59,14 @@ logs: ## Tail logs — all services, or one via SVC=db-postgres
 	docker compose logs -f $(SVC)
 
 ##@ Advanced
+debug: _require-env ## Shell with every backend CLI preloaded & wired (run 'make up' first; CMD='aws s3 ls' for a one-off)
+	@QS_CMD='$(value CMD)'; \
+	if [ -n "$$QS_CMD" ]; then docker compose run --rm debug bash -lc "$$QS_CMD"; \
+	else docker compose run --rm debug; fi
+
+debug-build: ## (Re)build the debug image after editing debug/Dockerfile
+	docker compose build debug
+
 test: _require-env ## Run smoke tests against the running stack (run 'make up' first)
 	@for t in tests/smoke-*.sh; do echo "▶ $$t"; bash "$$t" || exit 1; done
 	@echo "All smoke tests passed."

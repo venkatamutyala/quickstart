@@ -99,7 +99,17 @@ make conn ONLY=<name>          # details look right
 make status                    # all services healthy
 ```
 
-### 9. Document
+### 9. Add it to the debug box
+The `debug` service (`make debug`) bundles every backend's native CLI, pre-wired to the
+stack. Keep it complete for your new backend:
+- Install the client CLI in `debug/Dockerfile` (apt where possible; checksum-verify any
+  downloaded binary, like the Kafka tools / `mc` already do).
+- Add the wiring to the `debug` service `environment:` in `docker-compose.yaml` — use the
+  in-Docker hostname and pull secrets from `.env` via `${VAR:?...}` (never hardcode).
+- Add a one- or two-line entry to `debug/quickstart-help.sh` (the `help` cheatsheet).
+- Add an assertion to `tests/smoke-debug.sh` so CI verifies the CLI can reach your backend.
+
+### 10. Document
 - Add the service to the README service list.
 - No changelog edit needed — it's generated from your Conventional Commit message.
 
