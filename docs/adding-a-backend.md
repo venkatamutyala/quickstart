@@ -77,6 +77,14 @@ In `scripts/conn.sh`, add `if want <name>; then ... fi` printing, with live `.en
 
 Keep it **generic** — no per-language code snippets (that matrix is unmaintainable).
 
+### 5b. Add an `ai.sh` block
+In `scripts/ai.sh`, add a `### <Backend> — <kind>  [$(mark <service>)]` block (copy an
+existing one) so the new backend shows up in the `make ai` handoff. Keep it compact: a
+one-line "Use for", host + in-Docker connection strings, a `make debug CMD='…'` debug line,
+the UI, and one gotcha. Add the service to the `DATA_SERVICES` list at the top so its
+live up/down status is detected. **Escape any `$VAR` that should expand inside the debug
+box** (e.g. `\$GARAGE_BUCKET`) so it survives the unquoted heredoc as a literal.
+
 ### 6. Wire up the Makefile
 - Add the service to the `up` service list.
 - Add a line to `info`.

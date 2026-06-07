@@ -2,6 +2,7 @@
 .env
 pgadmin/servers.json
 garage/garage.toml
+AI-HANDOFF-PROMPT.md
 
 # OS / editor noise
 .DS_Store

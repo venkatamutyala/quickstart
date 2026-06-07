@@ -6,7 +6,7 @@ ifneq (,$(wildcard .env))
 include .env
 endif
 
-.PHONY: help init up down reset conn env info status logs test tunnel tunnel-login debug debug-build
+.PHONY: help init up down reset conn ai env info status logs test tunnel tunnel-login debug debug-build
 
 ##@ Core
 help: ## Show this help
@@ -35,6 +35,9 @@ reset: ## Stop and DELETE the data volume (fresh database next 'up')
 
 conn: _require-env ## Print broken-out connection details (ONLY=postgres|s3|valkey|rabbitmq|kafka|opensearch)
 	@./scripts/conn.sh $(ONLY)
+
+ai: _require-env ## Print AI-handoff text to append to another assistant's prompt (menu of running backends)
+	@./scripts/ai.sh
 
 ##@ Introspect
 info: _require-env ## Show URLs and credentials for this instance
