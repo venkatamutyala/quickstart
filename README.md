@@ -8,7 +8,9 @@ each service with a UI and ready-to-paste connection details; point your app at 
 - **Garage** — S3-compatible object storage (+ a web UI)
 - **Valkey** — Redis-compatible cache/store (+ a redis-commander web UI)
 - **RabbitMQ** — AMQP message broker (+ the built-in management UI)
-- _more backends planned (Kafka, OpenSearch, pgvector, …)_
+- **Kafka** — event-streaming broker, single-node KRaft (+ the kafbat web UI)
+- **OpenSearch** — search / analytics engine (+ OpenSearch Dashboards)
+- _more backends planned (pgvector, …)_
 
 > Local development only — not for production.
 
@@ -21,7 +23,7 @@ language/SDK (.NET Aspire). Deliberately **FOSS and data-backends-only**, not a 
 ```bash
 git clone https://github.com/venkatamutyala/quickstart && cd quickstart
 make init    # create .env from .env.example
-make up      # start everything, wait until healthy, init the S3 bucket
+make up      # start everything, wait until healthy, init the S3 bucket (+ any Kafka topics)
 make conn    # print full connection details for every service
 ```
 
@@ -34,6 +36,8 @@ S3 (Garage): http://localhost:3900  (region garage, bucket appbucket)
 Garage UI : http://localhost:3909  (opens straight in — no login)
 Valkey    : redis://default:valkey@localhost:6379/0  (UI http://localhost:8081 — no login)
 RabbitMQ  : amqp://rabbit:rabbit@localhost:5672/  (UI http://localhost:15672 — log in: rabbit / rabbit)
+Kafka     : localhost:9092  (PLAINTEXT, no auth; UI http://localhost:8082 — no login)
+OpenSearch: http://localhost:9200  (no auth; Dashboards http://localhost:5601 — no login)
 ```
 
 ## Connection details
@@ -43,11 +47,13 @@ everything follows). `make conn` prints the details broken out per service, with
 live values, so you can map them to whatever language/framework you use:
 
 ```bash
-make conn               # all services
-make conn ONLY=postgres # just Postgres
-make conn ONLY=s3       # just S3 / Garage
-make conn ONLY=valkey   # just Valkey
-make conn ONLY=rabbitmq # just RabbitMQ
+make conn                 # all services
+make conn ONLY=postgres   # just Postgres
+make conn ONLY=s3         # just S3 / Garage
+make conn ONLY=valkey     # just Valkey
+make conn ONLY=rabbitmq   # just RabbitMQ
+make conn ONLY=kafka      # just Kafka
+make conn ONLY=opensearch # just OpenSearch
 ```
 
 **Postgres** — host, port, db, user, password, SSL mode, plus assembled libpq URL,
@@ -68,6 +74,26 @@ password only (user `default`). Plain connection — use `redis://`, not `rediss
 **RabbitMQ** — user, password, the default vhost `/`, and an assembled `amqp://` URL
 (AMQP 0-9-1). The bundled management UI doubles as an HTTP API on the same port under `/api`.
 
+**Kafka** — `bootstrap.servers` for both contexts, plus the kafbat web UI. PLAINTEXT, no
+auth. It's a **single node**, so:
+
+- **Replication factor is 1** (one broker — RF>1 needs more brokers). Treat replication factor
+  and `min.insync.replicas` as *config*, not constants: `1` locally, `3`+ in prod. Everything
+  else — multiple topics, partitions, consumer groups, and transactions / exactly-once — works
+  exactly as on a real cluster (the internal topics are configured RF=1 so EOS starts cleanly).
+- **Topics** auto-create on first use (broker `auto.create.topics.enable=true`), so producing to
+  a new topic name brings it into being at RF=1. Apps can also declare topics explicitly via the
+  AdminClient. To *guarantee* specific topics exist up front, list them in `KAFKA_TOPICS` (in
+  `.env`) and they're pre-created on every `make up`, idempotently (existing topics untouched);
+  it's empty by default.
+
+**OpenSearch** — REST endpoint for both contexts, plus OpenSearch Dashboards. The security
+plugin is **disabled** (plain `http://`, no auth) for local dev — don't send credentials or
+use `https`. Use an **OpenSearch** client (opensearch-py/-js/-java/-go), not the Elasticsearch
+8+ client (it refuses to talk to an OpenSearch server). The cluster is `green` on boot (system
+indices use 0 replicas); it turns `yellow` once you create an index with the default 1 replica
+(which can't be assigned on a single node) — set `number_of_replicas: 0` to keep it `green`.
+
 `make conn` prints **two fully-assembled forms** for every service:
 
 - **From your host** — app runs on your machine: host `localhost`, the published port.
@@ -86,8 +112,9 @@ shell so your app picks them up against the running stack.
 
 Running this on a remote or headless box and want to reach the GUIs from your laptop's
 browser? The bundled [Dev Tunnels](https://aka.ms/devtunnels/docs) integration exposes the
-**GUIs** (pgAdmin, Garage UI, Valkey UI, RabbitMQ management UI) over public HTTPS URLs (the
-database/S3/cache/broker data ports are **not** exposed):
+**GUIs** (pgAdmin, Garage UI, Valkey UI, RabbitMQ management UI, Kafka UI, OpenSearch
+Dashboards) over public HTTPS URLs (the database/S3/cache/broker/stream/search data ports
+are **not** exposed):
 
 ```bash
 make tunnel-login   # one-time: GitHub login (device-code flow, works headless)
@@ -97,9 +124,9 @@ make tunnel         # host the GUIs; opens https://*.devtunnels.ms URLs (Ctrl-C 
 - Access requires authentication by default (GitHub login on the tunnel). Add `ANON=1`
   (`make tunnel ANON=1`) to drop that and allow anyone with the URL. Be careful: most bundled
   GUIs have **no login of their own** — pgAdmin opens straight into a pre-connected Postgres,
-  and the Garage and Valkey UIs open straight in too — so `ANON=1` exposes them fully to anyone
-  with the URL. Only RabbitMQ prompts for credentials. Keep tunnels authenticated unless you
-  mean to share them.
+  and the Garage, Valkey, Kafka, and OpenSearch UIs open straight in too — so `ANON=1` exposes
+  them fully to anyone with the URL. Only RabbitMQ prompts for credentials. Keep tunnels
+  authenticated unless you mean to share them.
 - `./scripts/tunnel.sh <port> [<port>...]` tunnels specific ports, so any GUI added later
   exposes the same way.
 - Needs the `devtunnel` CLI; `make tunnel` prints install instructions if it's missing.
@@ -131,14 +158,14 @@ data volume is first created:
 
 ## Contributing & extending
 
-Want to add another backend (Kafka, OpenSearch, pgvector, …)? There's one repeatable pattern —
+Want to add another backend (pgvector, …)? There's one repeatable pattern —
 see **[docs/adding-a-backend.md](docs/adding-a-backend.md)**. For workflow, commit
 conventions (Conventional Commits), and the changelog process, see
 **[CONTRIBUTING.md](CONTRIBUTING.md)**; for versioning/tags, **[RELEASING.md](RELEASING.md)**.
 AI agents: start at **[AGENTS.md](AGENTS.md)**.
 
 CI runs on every PR — it lints commit messages and runs a smoke test that boots the whole
-stack and verifies Postgres + S3.
+stack and runs every `tests/smoke-*.sh` round-trip (one per bundled backend).
 
 ## Notes
 
@@ -151,8 +178,13 @@ stack and verifies Postgres + S3.
   credentials after first boot: `make reset` (destroys data), edit `.env`, then `make up`.
 - Garage is initialized automatically on `make up` (idempotent): it applies a single-node
   layout, imports the S3 key from `.env`, and creates the bucket.
-- Data lives in named Docker volumes (`pgdata`, `garagemeta`, `garagedata`); it survives
-  `make down` but `make reset` wipes all of them.
+- Kafka auto-creates topics on first use (RF=1); to guarantee specific topics, list them in
+  `KAFKA_TOPICS` and they're pre-created on `make up` (idempotent, RF=1). It's empty by default.
+- OpenSearch runs in single-node discovery mode, which skips the production bootstrap checks —
+  so no host `vm.max_map_count` sysctl tuning is needed (unlike a multi-node cluster).
+- Data lives in named Docker volumes (`pgdata`, `garagemeta`, `garagedata`, `valkeydata`,
+  `rabbitmqdata`, `kafkadata`, `opensearchdata`); it survives `make down` but `make reset`
+  wipes all of them.
 
 ## License
 

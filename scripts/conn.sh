@@ -4,7 +4,7 @@
 # Docker), plus the common options various libraries need. Generic on purpose —
 # map them to your language and framework yourself.
 #   ./scripts/conn.sh            # all services
-#   ./scripts/conn.sh postgres   # just one (postgres|s3|valkey|rabbitmq)
+#   ./scripts/conn.sh postgres   # just one (postgres|s3|valkey|rabbitmq|kafka|opensearch)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -159,5 +159,58 @@ cat <<EOF
                      clients also default to '/'. AMQP 0-9-1 clients: pika (Py), amqplib (JS),
                      amqp091-go (Go), Spring AMQP / Bunny. The management HTTP API is on the
                      UI port under /api (same credentials).
+EOF
+fi
+
+if want kafka; then
+cat <<EOF
+
+============================== Kafka (stream) ============================
+  Protocol         : Kafka (PLAINTEXT — no TLS, no auth)
+  Pre-created      : ${KAFKA_TOPICS:-<none>}   (topics listed in KAFKA_TOPICS, made on 'make up'; RF 1)
+  Auto-create      : on — producing to a new topic name creates it (RF 1); or declare via AdminClient
+
+  -- From your host (localhost) --
+  Bootstrap servers: localhost:$KAFKA_PORT
+  Web UI           : http://localhost:$KAFKA_UI_PORT   (kafbat — opens straight in, no login)
+
+  -- From inside Docker (service 'stream-kafka') --
+  Bootstrap servers: stream-kafka:9092
+
+  -- Single-node limits & client notes --
+  replication      : factor must be 1 (one broker). Make it config, not a constant: 1 here, 3+
+                     in prod. min.insync.replicas can't exceed 1 here either.
+  partitions       : unlimited — multiple topics/partitions/consumer groups all work normally.
+  transactions/EOS : work — internal topics are configured RF=1. Set a transactional.id and,
+                     for exactly-once, processing.guarantee=exactly_once_v2 (Streams).
+  property name    : it's 'bootstrap.servers' (Java/librdkafka) — e.g. confluent-kafka (Py/Go/.NET),
+                     kafka-python/aiokafka, KafkaJS (brokers: ['localhost:$KAFKA_PORT']), Sarama (Go).
+  acks             : acks=all is fine on RF=1 (one in-sync replica acks).
+EOF
+fi
+
+if want opensearch; then
+cat <<EOF
+
+========================== OpenSearch (search) ===========================
+  Engine           : OpenSearch (security plugin disabled — plain http, no auth)
+  Use TLS          : no (http)        Auth: none (don't send credentials)
+
+  -- From your host (localhost) --
+  REST endpoint    : http://localhost:$OPENSEARCH_PORT
+  curl check       : curl http://localhost:$OPENSEARCH_PORT/_cluster/health?pretty
+  Dashboards UI    : http://localhost:$OPENSEARCH_DASHBOARDS_PORT   (opens straight in, no login)
+
+  -- From inside Docker (service 'search-opensearch', internal port 9200) --
+  REST endpoint    : http://search-opensearch:9200
+
+  -- Client notes --
+  compatibility    : speaks the OpenSearch REST API. Use an OpenSearch client (opensearch-py,
+                     opensearch-js, opensearch-java, opensearch-go) — NOT the Elasticsearch 8+
+                     client (it version-checks the server and refuses to talk to OpenSearch).
+  cluster health   : green on boot (system indices use 0 replicas); turns 'yellow' once you
+                     create an index with the default 1 replica (unassignable on one node) —
+                     set number_of_replicas=0 on your indexes to keep 'green'.
+  no sign-in        : since security is off, do not pass user/password or https — plain http only.
 EOF
 fi

@@ -154,9 +154,124 @@ services:
       timeout: 10s
       retries: 12
 
+  # Event-streaming broker. Apache's own image (not Confluent's community edition),
+  # single-node KRaft mode — no ZooKeeper. Plaintext, no auth (local-dev only), so no
+  # secret to enforce. Topics are created on `make up` by scripts/kafka-init.sh.
+  stream-kafka:
+    image: apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0
+    environment:
+      # --- single-node KRaft (combined broker + controller) ---
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # Two client listeners so both contexts get a correct advertised address:
+      #   INTERNAL — other containers reach the broker as 'stream-kafka:9092'
+      #   EXTERNAL — host clients reach it via the published port as 'localhost:${KAFKA_PORT}'
+      # A single advertised address can't serve both (clients reconnect to whatever the
+      # broker advertises), hence the split. EXTERNAL binds 29092 inside the container and
+      # is published on the host as ${KAFKA_PORT}.
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:9092,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://stream-kafka:9092,EXTERNAL://localhost:${KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      # --- single-node sizing: every replication factor must be 1 (one broker) ---
+      # Without these the internal topics default to RF=3 and consumer groups /
+      # transactions / exactly-once fail to start on a single node.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      # Auto-create a topic on first produce/consume (convenient for local dev). New topics
+      # default to 1 partition; default.replication.factor is pinned to 1 since RF>1 is
+      # impossible on a single node. Pre-create specific topics via scripts/kafka-init.sh
+      # (KAFKA_TOPICS in .env), or have your app declare them with the AdminClient.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_DEFAULT_REPLICATION_FACTOR: "1"
+      # Cap the broker heap (it otherwise defaults to ~1G) so the local stack and CI have a
+      # predictable footprint; 512m is ample for single-node dev load.
+      KAFKA_HEAP_OPTS: "-Xmx512m -Xms512m"
+      # Default log dir is /tmp (ephemeral) — point it at the named volume so data persists.
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafkadata:/var/lib/kafka/data
+    ports:
+      - "${KAFKA_PORT:-9092}:29092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 45s
+
+  # Web UI for Kafka (kafbat/kafka-ui, Apache-2.0 — the actively-maintained successor to
+  # provectus/kafka-ui, which has been dormant since its last release in Apr 2024, continued
+  # by the original maintainers). Talks to the broker over the compose network.
+  stream-kafka-ui:
+    image: kafbat/kafka-ui:v1.5.0@sha256:7cda86a33344160309fdb65146332e4da65db81a945614f2fe32e210803f6fd1
+    depends_on:
+      stream-kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: stream-kafka:9092
+      # DYNAMIC_CONFIG_ENABLED deliberately left off: the cluster is pre-wired here, and the
+      # runtime-config write surface it opens is the class of kafbat's past unauth RCE — not
+      # worth enabling for a UI that browses topics/consumer groups out of the box.
+    ports:
+      - "${KAFKA_UI_PORT:-8082}:8080"
+
+  # Search / analytics engine. Single-node, security plugin DISABLED — plaintext http
+  # with no auth (local-dev only), so no secret to enforce. single-node discovery also
+  # skips the production bootstrap checks (e.g. vm.max_map_count).
+  search-opensearch:
+    image: opensearchproject/opensearch:3.6.0@sha256:b5dd1512af2a99748c942cfbbd7f32162623336b210667d0fc6333c6321f171d
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms${OPENSEARCH_HEAP:-512m} -Xmx${OPENSEARCH_HEAP:-512m}"
+    ulimits:
+      # memlock unlimited is required by bootstrap.memory_lock; nofile per OpenSearch docs.
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearchdata:/usr/share/opensearch/data
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+    healthcheck:
+      # Wait for yellow-or-better. A fresh node is green (system indices use 0 replicas); it
+      # only goes yellow once an index is created with the default 1 replica (which can't be
+      # assigned on a single node) — so accepting yellow keeps it healthy either way.
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s' >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 45s
+
+  # Web UI for OpenSearch (OpenSearch Dashboards, Apache-2.0 — the first-party dashboard).
+  # Security plugin disabled to match the engine's plaintext, no-auth setup.
+  search-opensearch-ui:
+    image: opensearchproject/opensearch-dashboards:3.6.0@sha256:1ddd64e3a07fd98bc20ccf5174760b51795630a602b81102b37d1e9ee82cb7a9
+    depends_on:
+      search-opensearch:
+        condition: service_healthy
+    environment:
+      OPENSEARCH_HOSTS: '["http://search-opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    ports:
+      - "${OPENSEARCH_DASHBOARDS_PORT:-5601}:5601"
+
 volumes:
   pgdata:
   garagemeta:
   garagedata:
   valkeydata:
   rabbitmqdata:
+  kafkadata:
+  opensearchdata:

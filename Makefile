@@ -21,9 +21,10 @@ init: ## Create .env from .env.example (won't overwrite an existing one)
 		cp .env.example .env && echo "Created .env (edit it to taste, then 'make up')."; \
 	fi
 
-up: _require-env _render ## Start everything (Postgres, Garage, Valkey, RabbitMQ + UIs) and init S3
-	docker compose up -d --wait db-postgres pgadmin s3-garage s3-garage-ui cache-valkey cache-valkey-ui queue-rabbitmq
+up: _require-env _render ## Start everything (Postgres, Garage, Valkey, RabbitMQ, Kafka, OpenSearch + UIs), init S3 (+ any Kafka topics)
+	docker compose up -d --wait db-postgres pgadmin s3-garage s3-garage-ui cache-valkey cache-valkey-ui queue-rabbitmq stream-kafka stream-kafka-ui search-opensearch search-opensearch-ui
 	@$(MAKE) --no-print-directory _garage-init
+	@$(MAKE) --no-print-directory _kafka-init
 	@$(MAKE) --no-print-directory info
 
 down: ## Stop the stack (keeps data)
@@ -32,7 +33,7 @@ down: ## Stop the stack (keeps data)
 reset: ## Stop and DELETE the data volume (fresh database next 'up')
 	docker compose down --volumes
 
-conn: _require-env ## Print broken-out connection details (ONLY=postgres|s3|valkey|rabbitmq)
+conn: _require-env ## Print broken-out connection details (ONLY=postgres|s3|valkey|rabbitmq|kafka|opensearch)
 	@./scripts/conn.sh $(ONLY)
 
 ##@ Introspect
@@ -44,6 +45,8 @@ info: _require-env ## Show URLs and credentials for this instance
 	@echo "Garage UI : http://localhost:$(GARAGE_UI_PORT)  (opens straight in — no login)"
 	@echo "Valkey    : redis://default:$(VALKEY_PASSWORD)@localhost:$(VALKEY_PORT)/0  (UI http://localhost:$(VALKEY_UI_PORT) — no login)"
 	@echo "RabbitMQ  : amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@localhost:$(RABBITMQ_PORT)/  (UI http://localhost:$(RABBITMQ_MANAGEMENT_PORT) — log in: $(RABBITMQ_USER) / $(RABBITMQ_PASSWORD))"
+	@echo "Kafka     : localhost:$(KAFKA_PORT)  (PLAINTEXT, no auth; UI http://localhost:$(KAFKA_UI_PORT) — no login)"
+	@echo "OpenSearch: http://localhost:$(OPENSEARCH_PORT)  (no auth; Dashboards http://localhost:$(OPENSEARCH_DASHBOARDS_PORT) — no login)"
 	@echo "Run 'make conn' for full per-service connection details."
 
 env: _require-env ## Print eval-able env exports for your app:  eval "$$(make env)"
@@ -63,7 +66,7 @@ test: _require-env ## Run smoke tests against the running stack (run 'make up' f
 tunnel-login: ## Log in to dev tunnels with GitHub (device-code; headless-friendly)
 	devtunnel user login --github --use-device-code-auth
 
-tunnel: _require-env ## Expose all GUIs (pgAdmin, Garage, Valkey, RabbitMQ) via a dev tunnel (ANON=1 for anonymous)
+tunnel: _require-env ## Expose all GUIs (pgAdmin, Garage, Valkey, RabbitMQ, Kafka, OpenSearch) via a dev tunnel (ANON=1 for anonymous)
 	@./scripts/tunnel.sh
 
 # --- internal helpers (hidden from `make help`) ---
@@ -74,6 +77,10 @@ _require-env:
 # Garage needs a one-time cluster layout + key + bucket; idempotent, run by `up`.
 _garage-init: _require-env
 	@./scripts/garage-init.sh
+
+# Create the topics declared in KAFKA_TOPICS; idempotent, run by `up`.
+_kafka-init: _require-env
+	@./scripts/kafka-init.sh
 
 # Render config that embeds .env values, so .env stays the single source of truth.
 _render:
