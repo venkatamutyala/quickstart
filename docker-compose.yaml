@@ -1,6 +1,6 @@
 services:
   db-postgres:
-    image: postgres:18.4@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
+    image: postgres:18.4@sha256:4aabea78cf39b90e834caf3af7d602a18565f6fe2508705c8d01aa63245c2e20
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?missing — run 'make init' to create .env from .env.example}
@@ -158,7 +158,7 @@ services:
   # single-node KRaft mode — no ZooKeeper. Plaintext, no auth (local-dev only), so no
   # secret to enforce. Topics are created on `make up` by scripts/kafka-init.sh.
   stream-kafka:
-    image: apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0
+    image: apache/kafka:4.3.0@sha256:0be4c9eb3565733612d2836d65636fd611a219ebcf5b4162e5ac259ea0ecb907
     environment:
       # --- single-node KRaft (combined broker + controller) ---
       KAFKA_NODE_ID: "1"
