@@ -3,7 +3,7 @@
 # pin the base by digest and verify every downloaded binary by checksum, keeping the spirit
 # of the repo's "pin by digest" rule. No connection details or secrets live here: they come
 # from .env + in-Docker hostnames at runtime (see the `debug` service in docker-compose.yaml).
-FROM ubuntu:24.04@sha256:786a8b558f7be160c6c8c4a54f9a57274f3b4fb1491cf65146521ae77ff1dc54
+FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
 
 ENV DEBIAN_FRONTEND=noninteractive
 
